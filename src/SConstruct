@@ -1,0 +1,8 @@
+import os, glob
+
+env = DefaultEnvironment(ENV = os.environ)
+env.Append(BUILDERS = {'Coq' : Builder(action = 'coqc $SOURCE', suffix = '.vo', src_suffix = '.v')})
+env.Append(SCANNERS = Scanner(skeys = ['.v'], function = (lambda node, env, path: os.popen("coqdep -w -I . " + str(node)).read().strip().split(' ')[2:])))
+
+fs = glob.glob('*.v')
+for f in fs: env.Coq(f)

@@ -1,0 +1,549 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage{color}
+\usepackage[colorlinks,pdftitle={dus},pdfauthor={James McKinna and Eelis van der Weegen}]{hyperref}
+
+\spnewtheorem*{propo}{Proposition}{\bfseries}{\rmfamily}
+
+%include polycode.fmt
+
+%format pipe = "\mathopen{|}"
+
+%format times = "\times"
+
+%format . = "."
+%format forall = "\forall"
+%format Fixpoint = "\mathbf{Fixpoint}"
+%format Definition = "\mathbf{Definition}"
+%format Eval = "\mathbf{Eval}"
+%format Notation = "\mathbf{Notation}"
+%format Lemma = "\mathbf{Lemma}"
+%format Proof = "\mathbf{Proof}"
+%format Defined = "\mathbf{Defined}"
+%format Function = "\mathbf{Function}"
+%format Proposition = "\mathbf{Proposition}"
+%format Record = "\mathbf{Record}"
+%format Program = "\mathbf{Program}"
+%format Inductive = "\mathbf{Inductive}"
+%format Theorem = "\mathbf{Theorem}"
+%format Let = "\mathbf{Let}"
+%format Variable = "\mathbf{Variable}"
+%format Variables = "\mathbf{Variables}"
+%format measure = "\mathbf{measure}"
+
+%format fcmp = "\circ"
+%format match = "\mathbf{match}"
+%format with = "\mathbf{with}"
+%format end = "\mathbf{end}"
+%format fun = "\lambda\hspace{-1mm} "
+%format nat = "\mathbb{N}"
+%format R = "\mathbb{R}"
+%format exists = "\exists "
+%format log2ceil = "\log_{2}\hspace{-0.5mm}"
+%format over = "\mathbf{over}"
+%format INR (a) = a
+%format /\ = "\wedge "
+%format \/ = "\vee"
+%format MonoidMonadTrans.M = "\Varid{MMT}"
+%format NatAddMonoid = (nat, 0, +)
+
+%format sqrd (a) = (a)"^2"
+
+%format `In` = "\in"
+%format `NotIn` = "\notin"
+
+%format C_MMT
+%format ret_MMT
+%format bind_MMT
+
+%format NeTreeMonad = "M_\Varid{ne\_tree}"
+%format M_ne_tree = "M_\Varid{ne\_tree}"
+%format bind_ne_tree = "\Varid{bind}_\Varid{ne\_tree}"
+%format ret_ne_tree = "\Varid{ret}_\Varid{ne\_tree}"
+%format pick_ne_tree = "\Varid{pick}_\Varid{ne\_tree}"
+
+%format Monoid_U
+%format cmp_U
+%format pick_U
+%format partition_U
+%format qs_U
+%format U.qs = "\Varid{qs}_U"
+
+%format M_NDP
+%format le_NDP
+%format qs_NDP
+
+%format le_SP
+%format ret_SP
+%format bind_SP
+%format qs_SP
+
+% todo:
+% - check that names are spelled and encoded right in bibliography
+% - lhs2tex shows parameters declared with {...} differently from those declared with (...)
+% - mention that we don't do correctness proofs (although we can add them in the formalization, of course)
+
+\def\commentbegin{\quad\{\ }
+\def\commentend{\}}
+
+\def\typeset{}
+
+\newcommand{\todo}[1]{\textcolor{magenta}{[TODO: #1]}}
+
+\begin{document}
+
+\nocite{*}
+
+\title{A Machine-checked Proofs of Quicksort's Average-case Complexity, in Coq}
+
+\authorrunning{\em}
+\titlerunning{\em}
+
+\author{James McKinna and Eelis van der Weegen}
+
+\institute{Department of Computer Science, University of Nijmegen, the Netherlands}
+
+\maketitle
+
+\begin{abstract}
+  We describe a machine-checked proof of Quicksort's $O(n \log n)$ average-case complexity, developed using the Coq system. To represent the algorithm, a shallow embedding is used in which the algorithm is defined as a monadically expressed functional program, with both the counted operation and the monad turned into parameters. Profiling instrumentation is then transparently inserted into this otherwise straightforward algorithm definition by instantiating it with the right monads. The instrumentation is sufficient to support formal yet convenient derivation of key properties of the algorithm's behavior needed by the proof---a step usually omitted in existing proofs. Thus, we directly take advantage of the computational nature of the type theory on which Coq is based.
+\end{abstract}
+
+\section{Introduction}
+
+Proofs of Quicksort's $O(n \log n)$ average-case complexity are included in many textbooks on computational complexity \cite{introtoalgos} \todo{more}. This paper documents what the authors believe to be the first fully formal machine-checked version of such a proof, developed using the Coq proof assistant \cite{coq}.
+
+The formalization is based on the ``paper proof'' in \cite{introtoalgos}, but adds a great deal of theory simply to handle all the details that are omitted in that original. In particular, the latter takes key assertions about the algorithm's behavior for granted. Indeed, it does not even formally define the algorithm in the first place. While this practice is common and perfectly reasonable for paper proofs intended for human consumption, it is a luxury we do not afford ourselves. Hence, a large part of this paper is devoted to the representations we use to define the algorithms, and how they support complexity proofs. These representations take the form of a shallow monadic embedding, and depend critically on the type theoretic nature of Coq's calculus \cite{coq'art}.
+
+Section \ref{embed} introduces the basic idea of the embedding, and demonstrates its use by briefly proving Quicksort's quadratic worst-case complexity with it. In section \ref{nondetexpec}, the technique is expanded to handle the notion of the \emph{expected value} of non-deterministic programs, which then lets us state the main theorem in section \ref{statement}. Sections \ref{reduction} and \ref{finishing} detail the actual proof. Section \ref{conclusion} ends with conclusions and final remarks.
+
+The Coq source files containing the entire formalization can be downloaded from \url{http://www.eelis.net/research/quicksort/}. The Coq version used is 8.2 beta 2.
+
+\section{A Shallow Monadic Embedding}
+\label{embed}
+
+Before the main theorem can even be formally stated, let alone proved, a formal definition of the algorithm is needed, expressed in a programming language with well-defined semantics, suitable for subsequent formal reasoning. Here, we exploit the computational nature of the type theory on which Coq is based. Rather than defining the syntax and semantics of a programming language from scratch (this would be a ``deep'' embedding) like we would have to do in, say, ZFC mathematics, we instead use the built-in lambda calculus as a functional programming language, and write the algorithm as a specially adorned lambda term. More specifically, we express the algorithm monadically, with both the monad and the counted operation (in our case, the elementwise comparison---the usual complexity metric for sorting algorithms) made into parameters. Expressed this way, a deterministic quicksort that simply selects the head of the input list as its pivot element, and uses two simple filter passes to partition the input list, looks as follows:
+
+\begin{code}
+  Variables (M: Monad) (T: Set) (le: T -> T -> M bool).
+
+  Definition gt (x y: T): M bool := liftM negb (le x y).
+
+  Fixpoint filter (c: T -> M bool) (l: list T): M (list T) :=
+    match l with
+    | nil => ret nil
+    | h :: t =>
+      t' <- filter c t;
+      b <- c h;
+      ret (if b then h :: t' else t')
+    end.
+
+  Program Fixpoint qs (l: list T) {measure length l}: M (list T) :=
+    match l with
+    | nil => ret nil
+    | pivot :: t =>
+        lower <- filter (gt pivot) t >>= qs;
+        upper <- filter (le pivot) t >>= qs;
+        ret (lower ++ pivot :: upper)
+    end.
+\end{code}
+|Monad| is a dependent record containing the (coercible) carrier of type |Set -> Set|, along with |bind| (infix: |>>=|) and |ret| (for ``return'') operations, and the three monad laws. For a general introduction to monadic programming and monad laws, see \cite{wadler93monads}. The notation |x <- y; z|, shorthand for |y >>= \x -> z| (where |x| may occur in |z|) is known as ``do-notation''.
+
+We use Coq's |Program| facility \cite{subsetcoercions} to cope with the fact that Quicksort's recursion is non-structural, by using the input list length as a measure. The proof obligations generated by |Program| for the above definition and measure are trivial enough for Coq to prove mostly by itself.
+
+By instantiating the above definitions with the right monad, we can transparently insert comparison-counting instrumentation into the algorithm, which will prove to be sufficient to let us reason about its complexity. But before we do so, let us note that if the above definitions are instead instantiated with the identity monad and an ordinary elementwise comparison on |T|, then the monadic scaffolding melts away, and the result is equivalent to an ordinary non-instrumented, non-monadic version, suitable for extraction and correctness proofs. This means that while we will instantiate the definitions with less trivial monads to support our complexity proofs, we can take some comfort in knowing that the object of those proofs is, in a very concrete sense, the actual Quicksort algorithm (as one would write it in a functional programming language), rather than some idealized model thereof.
+
+For reasons that will become clear in later sections, we compose the monad we will instantiate the above definitions with using a monad transformer called |MMT| (for ``monoid monad transformer''), which piggybacks a monoid onto an existing monad.
+
+\begin{code}
+  Variables (monoid: Monoid) (monad: Monad).
+
+  Let C_MMT: Set -> Set := monad fcmp prod monoid.
+
+  Let ret_MMT (T: Set): T -> C_MMT T := ret fcmp pair (monoid_zero monoid).
+
+  Let bind_MMT (A B: Set) (a: C_MMT A) (ab: A -> C_MMT B): C_MMT B :=
+    x <- a; y <- ab (snd x); ret (monoid_mult monoid (fst x) (fst y), snd y).
+
+  Definition MMT: Monad := Build_Monad C_MMT bind_MMT ret_MMT.
+\end{code}
+(In the interest of brevity, we omit proofs of the monad laws for |MMT| and all other monads defined in this paper. These proofs can all be found in the Coq code.)
+
+We use |MMT| to piggyback the additive monoid on |nat| onto the identity monad, and lift elementwise comparison into the resulting monad, which we call |SP| (for ``simply-profiled'').
+\begin{code}
+  Definition SP: Monad := MMT NatAddMonoid IdMonad.
+
+  Definition le_SP (x y: nat): SP bool := (1, le x y).
+\end{code}
+When instantiated with this monad and comparison operation, |qs| produces the comparison count as part of its result.
+\begin{code}
+  Definition qs_SP := qs SP le_SP.
+
+  Eval compute in qs_SP (3 :: 1 :: 0 :: 4 :: 5 :: 2 :: nil).
+    = (16, 0 :: 1 :: 2 :: 3 :: 4 :: 5 :: nil)
+\end{code}
+Defining |cost| and |result| as the first and second projection, respectively, we have the identities
+\begin{code}
+  forall x, cost (ret_SP x) = 0,
+  forall x f, cost (bind_SP x f) = cost x + cost (f (result x),
+  forall x y, cost (le_SP x y) = 1.
+\end{code}
+This very modest amount of machinery is sufficient for a straightforward proof of Quicksort's quadratic worst-case complexity.
+
+\begin{propo}|qs_worst: forall l, cost (qs_SP l) <= sqrd (length l).|\end{propo}
+  \todo{get rid of period after ``Proposition'' above}
+\begin{proof}
+  The proof is by induction matching |qs|'s recursion. For an empty input list, we have |cost (qs_SP nil) = cost (ret nil) = 0 <= sqrd (length l)|. For a non-empty input list |(pivot :: t)|, the cost decomposes into
+  \begin{code}
+    cost (filter (le pivot) t) + cost (qs_SP (result (filter (lt pivot) t))) +
+    cost (filter (gt pivot) t) + cost (qs_SP (result (filter (gt pivot) t))) +
+    cost (ret (result (qs_SP (result (filter (lt pivot) t))) ++
+     pivot :: result (qs_SP (result (filter (gt pivot) t))))).
+  \end{code}
+  The |filter| costs are easily proved (by induction on |t|) to be |length t| each. The cost of the final |ret| is 0 by definition. The induction hypothesis applies to the recursive |qs_SP| calls. Furthermore,
+  \begin{code}
+  length (result (filter (le pivot) t)) +
+  length (result (filter (gt pivot) t)) <= length t
+  \end{code}
+  can easily be proved by induction on |t|, because the two predicates filtered on are mutually exclusive. Abstracting |filter (le pivot) t| and its |gt| counterpart, this leaves
+  \begin{code}
+    forall (t flt flt': list T), length flt + length flt' <= length t ->
+      length t + sqrd (length flt) + length t + sqrd (length flt')  + 0 <= sqrd (S (length t)),
+  \end{code}
+  which is true by elementary arithmetic. \qed
+\end{proof}
+
+We now expand the machinery in preparation of the average-case complexity proof.
+
+\section{Nondeterminism and Expected Values}
+\label{nondetexpec}
+
+The Quicksort algorithm used by the average-case proof we formalize differs from the one presented in the last section in two ways: it is nondeterministic, and uses a single three-way partition pass instead of two two-way filter passes. Combined, these two traits ensure that the $O(n \log n)$ average-case property holds not just averaged over all input lists, but for each individual input list as well; nondeterministic pivot selection avoids the pathological cases any deterministic pivot selection strategy inevitably suffers, while a single three-way partition pass avoids the pathological quadratic case that two two-way filter passes suffer for an input list consisting of elements all of the same value. This greatly simplifies things, because it means that the global bound will follow immediately if it is proved for an arbitrary input.
+
+Hence, we define
+
+\parbox{\textwidth}{\begin{code}
+  Variables (T: Set) (M: Monad) (cmp: T -> T -> M comparison).
+
+  Fixpoint partition (pivot: T) (l: list T): M (Partitioning T) :=
+    match l with
+    | nil => ret emptyPartitioning
+    | h :: t =>
+        b <- cmp h pivot;
+        tt <- partition pivot t ;
+        ret (addToPartitioning b h tt)
+    end.
+
+  Variable pick: forall (A: Set), ne_list A -> M A.
+
+  Program Fixpoint qs (l: list T) {measure length l}: M (list T) :=
+    match l with
+    | nil => ret nil
+    | h :: t =>
+        i <- pick [0 .. length t];
+        let pivot := nth (h :: t) i in
+        part <- partition pivot (remove (h :: t) i);
+        low <- qs (part Lt);
+        upp <- qs (part Gt);
+        ret (low ++ pivot :: part Eq ++ upp)
+    end.
+\end{code}}
+Here, |comparison| is an enumeration with values |Lt|, |Eq|, and |Gt|. A |Partitioning T| is a function of type |comparison -> list T|. An |ne_list T| is a non-empty list of |T|'s. The functions |nth| and |remove| select and remove the $n$th element of a list, respectively.
+
+Nondeterminism can now be achieved by instantiating these definitions with a suitable monad, along with a corresponding |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by instantiating the definitions with the identity monad and a corresponding deterministic |pick| operation, like |head|.
+
+Let us now consider what kind of nondeterminism monad would be suitable for reasoning about the expected value of a nondeterministic program. The list monad is commonly used to emulate nondeterministic computation. With the list monad, the program
+\begin{code}
+  x <- pick [0, 1]; if x = 0 then ret 0 else pick [1, 2],
+\end{code}
+produces |[0, 1, 2]| as its list of possible outcomes. Unfortunately, the information that 0 is a more likely outcome than 1 or 2, has been lost. Such relative probabilities are critical to the notion of an expected value: the expected value of the program above is |avg [0, avg [1, 2]] = {-"\frac{3}{4}"-} /= 1 = avg [0, 1, 2]|. This makes list nondeterminism unsuitable for our purposes.
+
+Using tree nondeterminism instead solves the problem.
+\begin{code}
+  Inductive ne_tree (T: Set): Set :=
+    | Leaf: T -> ne_tree T
+    | Node: ne_list (ne_tree T) -> ne_tree T.
+
+  Definition ret_ne_tree {A: Set}: A -> C A := Leaf.
+
+  Fixpoint bind_ne_tree (A B: Set) (m: C A) (k: A -> C B): C B :=
+    match m with
+    | Leaf a => k a
+    | Node ts => Node (ne_list.map (fun x => bind_ne_tree x k) ts)
+    end.
+
+  Definition M_ne_tree: Monad := Build_Monad ne_tree bind_ne_tree ret_ne_tree.
+
+  Definition pick_ne_tree (T: Set): ne_list T -> M_ne_tree T
+    := Node fcmp ne_list.map Leaf.
+\end{code}
+(We use non-empty trees because are not interested in computations that produce no values at all, and using potentially empty trees would complicate the definition of a tree's average value below.)
+
+With this monad and pick operation, the same program now produces the tree |Node [Leaf 0, Node [Leaf 1, Leaf 2]]|, which preserves the relative probabilities. The expected value now coincides with the weighted average of these trees:
+\begin{code}
+  Definition ne_tree.avg: ne_tree R -> R := ne_tree.fold id ne_list.avg.
+\end{code}
+
+Relative probabilities are also the reason we use an $n$-ary choice primitive rather than a binary one, because correctly emulating (that is, without skewing the relative probabilities) an $n$-ary choice by a sequence of binary choices is only possible when $n$ is a power of two.
+
+Because we are often interested in the expected value of a measure of the output of a program that does not return numbers, we further define
+
+\begin{code}
+  Definition expec (T: Set) (f: T -> nat): ne_tree T -> R
+    := ne_tree.avg fcmp ne_tree.map f.
+\end{code}
+
+Thus, given a program |P| of type |M_ne_tree (list bool)|, |expec length P| denotes the expected length of the result list, if we interpret values of type |M_ne_tree T| as nondeterministically computed values of type |T|.
+
+To form the monad with which we will instantiate |qs| for the main theorem, we now piggyback the additive monoid on |nat| onto |M_ne_tree| using |MMT|, and call the result |NDP| (for ``non-deterministically profiled''):
+\begin{code}
+  Definition M_NDP: Monad := MMT NatAddMonoid M_ne_tree.
+
+  Definition le_NDP (x y: T): M bool := ret_ne_tree (1, le x y).
+
+  Definition qs_NDP := qs M_NDP le_NDP (lift pick_ne_tree).
+\end{code}
+
+When working with computations in a monad formed by transforming |M_ne_tree| using |MMT|, we are often interested in the expected value of a function of the piggybacked monoid. For this, we introduce |monoid_expec|.
+\begin{code}
+  Definition monoid_expec (m: Monoid) (f: m -> nat) {A: Set}
+    : MonoidMonadTrans.M m NeTreeMonad A -> R := expec (f fcmp fst).
+\end{code}
+Thus, we have |forall t, expec cost t = monoid_expec id t|.
+
+Like |expec|, |monoid_expec| gives rise to several identities. One identity that we would like to highlight is
+\begin{code}
+  monoid_expec_plus: forall (m: Monoid) (h: m -> nat) (A B: Set)
+    (f: MMT m NeTreeMonad A) (g: A -> MMT m NeTreeMonad B):
+
+    (forall x y `In` f -> monoid_expec h (g (snd x)) = monoid_expec h (g (snd y))),
+    monoid_expec h (f >>= g) =
+      monoid_expec h f + monoid_expec h (g (snd (ne_tree.head f))),
+\end{code}
+which states that if one transforms |M_ne_tree| using a monoid |m|, then for a monoid homomorphism |h| from |m| to the additive monoid on |nat|, |monoid_expec h| distributes over |bind|, provided that the expected monoid value of the right hand side does not depend on the computed value of the left hand side. Since |id| is a monoid homomorphism, |monoid_expec_plus| applies to |NDP| and |expec cost|. In section \ref{reduction}, we will use it with another monoid and homomorphism.
+
+\section{The Statement}
+\label{statement}
+
+Now that we have a solid definition of nondeterministic, instrumented quicksort, as well as the means to express the expected values of nondeterministic programs, the last thing needed before the main theorem can be stated, is the notion of big-O complexity. The definition we use is a standard textbook definition, except that we work with a separate measure function parameter:
+
+\parbox{\textwidth}{\begin{code}
+  Definition measured_bigO (X: Set)
+    (m: X -> nat) (f: X -> R) (g: nat -> R): Prop
+      := exists c, exists n, forall x, n <= m x -> f x <= c * g (m x).
+
+  Notation {-"``"-}over m ,{-"\ "-} f =O( g ){-"\text{''''}"-} := (measured_bigO m f g).
+\end{code}}
+We now state the main theorem.
+\begin{code}
+  Theorem qs_avg: over length,
+    expec cost fcmp qs_NDP =O(fun n => INR (n * log2ceil n)).
+\end{code}
+Thanks to the property discussed at the start of the previous section, the above follows as a corollary from the (slightly stronger) statement that
+\begin{code}
+  Theorem qs_expec_cost:
+    forall l, expec cost (qs_NDP l) <= 2 * length l * S (log2ceil (length l)),
+\end{code}
+the proof of which is described in the remainder of this paper.
+
+\section{Reduction to Pairwise Comparison Counts}
+\label{reduction}
+
+The main idea in the proof is to reduce |qs_expec_cost| to a statement about the expected number of comparisons between specific pairs of elements from the input list.
+
+If $X \equiv X_{I_0} \ldots X_{I_{n-1}}$ is the input list, with $I$ a permutation of |[0 ... n-1]| such that $X_0 \ldots X_n$ is sorted, then the expected number of comparisons between any $X_i$ and $X_j$ with $i < j$ is at most $2 / S (j - i)$. In other words, the expected number of comparisons between two list elements is bounded by a simple function of the number of list elements that separate the two in the sort order. We prove this fact in the next section, but first show how |qs_expec_cost| follows from it.
+
+Combined with the observation that the total expected number of comparisons equals the sum of the expected numbers of comparisons for each |(i, j)| in $\Varid{IJ} := \{ (i, j) \in [0, |length l|) \mid i < j \}$, the property described above suggests breaking up the inequality into
+\begin{code}
+  expec cost (qs_NDP l) <= {-"\displaystyle{\sum_{(i, j) \in \Varid{IJ}}\frac{2}{S (j - i)}}"-} <= 2 * length l * S (log2ceil (length l)).
+\end{code}
+Proving the right inequality requires a bit of analysis involving the harmonic series. This part of the proof could be fairly directly transcribed from the paper proof, using the existing real-number theory in the Coq standard library, with few complications and additions. We refer the interested reader to the paper proof.
+
+The left inequality is the challenging one. To bring it closer to the index summation, we first rewrite
+\begin{code}
+  expec cost (qs_NDP l) = expec cost (qs_NDP (map (nth (sort l)) li)),
+\end{code}
+where |sort| may be any sorting function (including |qs| itself), and where |li| is a permutation of |[0...n - 1]| such that |map (nth (sort l)) li = l| (such an |li| can easily be proven to exist).
+
+Next, we introduce a specialized monad and comparison operation that go one step further in focusing specifically on these indices.
+\begin{code}
+  Definition Monoid_U: Monoid := (nat * nat, nil, ++).
+
+  Definition U: Monad := MonoidMonadTrans.M Monoid_U NeTreeMonad.
+
+  Definition lookup_cmp (x y: nat): comparison :=
+    cmp (nth (sort l) x) (nth (sort l) y).
+
+  Definition cmp_U (x y: nat): U comparison :=
+    ret ((if x <= y then (x, y) else (y, x)) :: nil, lookup_cmp x y).
+
+  Definition qs_U: list nat -> list nat := qs cmp_U pick_U.
+\end{code}
+|qs_U| operates directly on a list of natural numbers representing indices into |sort l|. Comparison of indices is defined by comparison of the |T| values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of compared indices, by using |MMT| with the free monoid over |nat * nat| pairs, instead of the additive monoid on |nat| we used up until now.
+
+The goal can now be rewritten using
+\begin{code}expec cost (qs_NDP (map (nth (sort l)) li))
+  = monoid_expec length (qs_U li) = expec (length fcmp fst) (qs_U li).
+\end{code}
+The first equality is justified by a separate induction matching either side's |qs|'s recursion, proving that counting comparisons as they appear is really the same as recording them in a list and then computing the length of the resulting list.
+
+After rewriting once more, this time using\begin{code}expec_fcmp: forall f g t, expec (f fcmp g) t = expec f (ne_tree.map g t),\end{code}the goal becomes
+\begin{code}
+  expec length (ne_tree.map fst (qs_U li)) <= {-"\displaystyle{\sum_{(i, j) \in \Varid{IJ}}\frac{2}{S (j - i)}}"-}.
+\end{code}
+We now invoke another lemma which bounds a nondeterministically computed list's expected length by the expected number of occurrences of specific values in that list. More specifically, it states that
+
+\parbox{\textwidth}{\begin{code}
+  forall (X: Set) (fr: X -> R) (q: list X) (t: ne_tree (list X)):
+    (forall x `In` q, expec (count x) t <= fr i) ->
+    (forall x `NotIn` q, expec (count x) t = 0) ->
+    NoDuplicates q -> expec length t <= {-"\displaystyle{\sum_{\Varid{i} \in \Varid{q}}\Varid{fr}\ \Varid{i}}"-}.
+\end{code}}
+The last of the three subgoals thus generated states that there are no duplicate values in |IJ|, which trivially holds. The second subgoal generated is\begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using |expec_fcmp| backwards, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in the following property which is useful in its own right, as we will see later.
+\begin{code}sound_cmp_expec_0: forall i j li, (i `NotIn` li \/ j `NotIn` li) ->
+  monoid_expec (count (i, j)) (U.qs li) = 0,\end{code}
+The proof of |sound_cmp_expec_0|, which we won't show here, is by a separate induction matching |qs|'s recursion.
+
+This leaves but one subgoal which, expressed using a |monoid_expec|, reads
+\begin{code}
+  forall (i, j) `In` IJ, monoid_expec (count (i, j)) (qs_U li) <= 2 / INR (S (j - i)).
+\end{code}
+This is exactly  to the property described at the beginning of this section. We prove it in the next section.
+
+\section{Finishing the Proof}
+\label{finishing}
+
+To get a stronger induction hypothesis, we slightly generalize the goal to
+\begin{code}
+  forall i j, i < j -> forall (li: list nat) (b: nat), IndexSeq b li ->
+    monoid_expec (count (i, j)) (qs_U li) <= 2 / INR (S (j - i)).
+\end{code}
+The |(i, j) `In` IJ| hypothesis is dropped, because the statement is also true if |(i, j) `NotIn` IJ|, per |sound_cmp_expec_0|. The |IndexSeq| premise expresses that |li| is a permutation of |[b...b+length l]| (for some |b|).
+
+Again, the proof is by induction matching |qs|'s recursion. In the base case, |li| is |nil|, and the left side of the inequality reduces to 0. In the recursive case, |qs| unfolds:
+\begin{code}
+monoid_expec (count (i, j)) (
+    pi <- pick [0 ... n];
+    let pivot := nth li pi in
+    part <- partition_U pivot (remove li pi);
+    low <- qs_U (part Lt);
+    upp <- qs_U (part Gt);
+    ret (low ++ pivot :: part Eq ++ upp)
+  ) <= 2 / INR (S (j - i))
+\end{code}
+Since |cmp_U| is deterministic, |partition_U| is deterministic here as well. Furthermore, since we know exactly what monadic effects |partition| has in this case, we can split those effects off and then revert to simple uneffectful |filter| passes. Finally, the outer |monoid_expec| can be partially evaluated because of the immediately visible |pick|. Using these observations, the goal can be rewritten into a form that uses less monadic indirection:
+
+\begin{code}
+avg (map (monoid_expec (count (i, j)) fcmp (fun pi =>
+    let pivot := nth li pi in
+    let rest := remove li pi in
+    ne_tree.map (map_fst (++ map (U.unordered_nat_pair pivot) rest)) (
+      lower <- qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest);
+      upper <- qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest);
+      ret (lower ++ (pivot :: filter ((= Eq) fcmp lookup_cmp pivot) rest) ++ upper)
+    ))) [0...n]) <= 2 / INR (S (j - i)).
+\end{code}
+Here, |map_fst| applies a function to a pair's first component.
+% todo: get this [0...n]/[0...n-1] stuff right.
+
+We now distinguish between five different cases that can occur for the nondeterministically picked |pivot|; it can either be less than |i|, equal to |i|, between |i| and |j|, equal to |j|, or greater than |j|. Each case occurs a certain number of times, and has an associated expected number of |(i, j)| comparisons (coming either from the |map_fst| term representing the |partition| pass, or from the two recursive |qs_U| calls). To represent this split, we first rewrite the right side of the inequality to\begin{code}(2 / S (j - i) * (i - b) + 1 + 0 + 1 + 2 / S (j - i) * (b + n - j)) / S n.\end{code}
+This form reflects the facts that
+\begin{itemize}
+\item the case where |pivot| is less than |i| occurs |i - b| times, and in each instance, the expected number of |(i, j)| comparisons is no more than |2 / S (j - i)|;
+\item the case where the |pivot| is equal to |i| occurs once, and in this case no more than a single |(i, j)| comparison is expected;
+\item in the case where |pivot| lies between |i| and |j|, the number of expected |(i, j)| comparisons is 0, and consequently it does not matter how many times this case occurs;
+\item the case where the |pivot| is equal to |j| occurs once, and in this case no more than a single |(i, j)| comparison is expected;
+\item the case where the |pivot| is greater than |j| occurs |b + n - j| times, and in each instance, the expected number of |(i, j)| comparisons is no more than |2 / S (j - i)|.
+\end{itemize}
+With the right side of the inequality in this form, we unfold the |avg| application on the left into |sum (...) / S n|, and then cancel the division by |S n| on both sides. Next, to actually realize the split, we apply a specialized lemma stating that
+\begin{code}
+   forall b i j X f n (li: list nat)
+     (g: [0..n] -> U X), IndexSeq b li ->
+    b <= i < j < b + S n -> forall ca cb, 0 <= ca -> 0 <= cb ->
+    (forall pi, nth li pi < i -> expec f (g pi) <= ca) ->
+    (forall pi, nth li pi = i -> expec f (g pi) <= cb) ->
+    (forall pi, i < nth li pi < j -> expec f (g pi) = 0) ->
+    (forall pi, nth li pi = j -> expec f (g pi) <= cb) ->
+    (forall pi, j < nth li pi -> expec f (g pi) <= ca) ->
+      sum (map (expec f fcmp g) [0..n]) <=
+        ca * (i - b) + cb + 0 + cb + ca * (b + n - j).
+\end{code}
+The proof of this lemma is somewhat tedious \todo{because..}.
+% involving a lot of repetitive arguments about permutations, etc
+
+Five subgoals remain after applying the above lemma---one for each of the listed cases. The first one reads
+\begin{code}
+  forall pi,
+    let pivot := nth li pi in
+    let rest := remove li pi in
+      pivot < i ->
+      monoid_expec (count (i, j))
+        (ne_tree.map (map_fst (++ map (U.unordered_nat_pair pivot) rest)) (
+          foo <- qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest);
+          bar <- qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest);
+          ret (foo ++ (pivot :: filter ((= Gt) fcmp lookup_cmp pivot) rest) ++ bar)))
+        <= 2 / S (j - i).
+  \end{code}
+Rewriting using a lemma saying that
+\begin{code}
+  forall (A: Set) (g: m) (h: m -> nat) (t: MMT m NeTreeMonad A):
+    MonoidHomomorphism h ->
+    monoid_expec h (ne_tree.map (map_fst (monoid_mult m g)) t) =
+    INR (h g) + monoid_expec t,
+\end{code}
+the head reduces to
+\begin{code}
+    count (i, j) (map (U.unordered_nat_pair pivot) rest) +
+    monoid_expec (count (i, j))
+      (foo <- qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest);
+      bar <- qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest);
+      ret  (foo ++ (nth v pi :: filter ((= Eq) fcmp lookup_cmp pivot) rest) ++ bar))
+    <= 2 / S (j - i).
+\end{code}
+From |pivot < i| and |i < j|, we have |pivot < j|. Since each of the comparisons in |map (U.unordered_nat_pair pivot) rest| involves the pivot element, it follows that none of them can represent comparisons between |i| and |j|. Hence, the first term vanishes. Furthermore, since |count (i, j)| is a monoid homomorphism, |monoid_expec_plus| lets us distribute |monoid_expec|. Since the |ret| term does not produce any comparisons either (by definition), its |monoid_expec| term vanishes, too. What remains are the two recursive calls:
+
+\begin{code}
+monoid_expec (count (i, j))
+  (qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest)) +
+monoid_expec (count (i, j))
+  (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest)) <= 2 / INR (S (j - i))
+\end{code}
+All indices in the lower filtered part denote elements that compare less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that the indices areless than |pivot|. By |sound_cmp_expec_0|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons, so the first |monoid_expec| term vanishes as well, leaving
+\begin{code}
+monoid_expec (count (i, j))
+  (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest)) <= 2 / INR (S (j - i)).
+\end{code}
+We now compare |nth (sort l) i| with |nth (sort l) pivot|.
+\begin{itemize}
+\item If the two are equal, then |i| will not occur in the |filter term|, allowing us to invoke |sound_cmp_expec_0| yet again.
+\item If |nth (sort l) i < nth (sort l) pivot|, then we must have |i < pivot|, contradicting the assumption that |pivot < i|.
+\item If |nth (sort l) i > nth (sort l) pivot|, then we apply the induction hypothesis. For this, it must be shown that the filter term is a proper contiguous index sequence, which we relegated to a lemma we won't show here.
+\end{itemize}
+This concludes the case where |i < pivot|. The case where |j < pivot| is symmetric. The other cases use similar arguments.
+
+The proof is now complete.
+
+\section{Final Remarks}
+\label{conclusion}
+
+In the interest of brevity, we have omitted innumerable details and lemmas in the description of the proof. Still, the parts shown are reasonably faithful to the actual formalization. For completeness, we briefly list some complicating factors that we have ignored. In some cases, resolving these took significant effort.
+
+\begin{itemize}
+\item We have pretended to have used ordinary natural numbers as indices into ordinary lists, completely ignoring the inescapable issues of index validity that could not be ignored in the actual formalization. There, we use vectors (lists whose size is part of their type) and bounded natural numbers in many places instead. Using these substantially reduces the amount of |i < length l| proofs that need to be produced, converted, and passed around, but the issue is still far from painless.
+\item Using the |Program| facility to deal with quicksort's non-structural recursion was not completely as trivial as we made it out to be. To make proving the generated proof obligations possible, the types of |filter| and |partition| had to be sigma-decorated with modest length guarantees, because the opacity of the unspecified monad's |bind| operation prevented |Program| from being able to ``see'' the relation between the function's parameters and the arguments it passed in its recursive calls.
+\item The definitions produced by |Program| use clever recursion operators that translate a well-founded relation into a form that can be structurally recursed on. Consequently, corresponding induction principles are similarly clever. Using these induction principles for a function already defined with two layers of monadicity quickly became unwieldy. To deal with this, we defined a series of induction principles specialized for specific instances of |qs|, which put the recursive proof obligation in as simple terms as possible, with as little monadic indirection as possible, using among other things the observations regarding determinism of the comparison operation, as described in section \ref{finishing}.
+\end{itemize}
+
+For all the gruesome details, we refer the interested reader to the Coq source files.
+
+In conclusion, we have found the shallow monadic embedding to be a straightforward, clean, and solid basis for reasoning about an algorithm's computational complexity. Calling it an embedding almost seems misplaced, since the algorithm definitions are essentially just monadically expressed functional programs in Coq's calculus. Furthermore, since monads and monad transformers have been used in functional programming for decades, the basic idea should be immediately clear to any functional programmer. Still, it is worth noting that this pleasing convergence of subject and object languages is due solely to the fact that Coq is based on type theory.
+
+Quicksort turned out to be a good stress test for the technique, showing that it copes well with nondeterminism and nontrivial average-case bounds. The |U| monad shows that custom profiling monads can be defined to analyse very algorithm-specific traits for a specific part of a larger complexity proof, which was crucial for this particular proof.
+
+For future work, a logical next challenge is to try and formalize a (likely more complex) proof that the $O(n \log n)$ bound holds also for deterministic quicksorts (with sensible pivot selection strategies).
+
+\bibliographystyle{plain}
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliography{paper}
+
+\end{document}

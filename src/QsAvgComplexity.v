@@ -1,0 +1,344 @@
+Set Implicit Arguments.
+
+Require Import sums_and_averages.
+Require Import Reals.
+Require Import nats_below.
+Require Import ArithLems.
+Require Import List.
+Require Import Util.
+Require Import Fourier.
+Require Import ListUtils.
+Require Import NatBelow.
+
+Lemma harmonic_upper_bound n: RsumOver (nats 1 n) (Rinv ∘ INR) <= INR (S (log2ceil n)).
+Proof with auto with real.
+  intros.
+  rewrite S_INR.
+  rewrite Rplus_comm.
+  apply Rle_trans with (RsumOver (nats 1 (pow 2 (log2ceil n))) (Rinv ∘ INR)).
+    apply RsumOver_nats_le.
+      destruct n...
+      unfold log2ceil.
+      apply pow2_ceil_log2.
+    intros.
+    destruct q.
+      inversion H.
+    unfold compose...
+  rewrite split_pow2_range.
+  rewrite RsumOver_cons.
+  rewrite RsumOver_concat_map.
+  unfold compose.
+  simpl INR.
+  rewrite Rinv_1...
+  apply Rplus_le_compat_l.
+  replace (INR (log2ceil n)) with (INR (length (nats 0 (log2ceil n))) * 1).
+    Focus 2.
+    rewrite nats_length.
+    apply Rmult_1_r.
+  apply RsumOver_constant_le.
+  intros.
+  rewrite RsumOver_nats_natsBelow.
+  apply Rle_eq_trans with (RsumOver (nats 0 (pow 2 x)) (fun _ => / INR (pow 2 x))).
+    apply RsumOver_le.
+    intros.
+    unfold compose. simpl.
+    rewrite <- plus_assoc.
+    rewrite plus_comm.
+    simpl plus.
+    apply Rle_Rinv...
+      apply lt_INR_0.
+      apply pow_min...
+    apply le_INR.
+    omega.
+  unfold RsumOver.
+  rewrite Rsum_constant with (/ INR (pow 2 x)) (map (fun _ => / INR (pow 2 x)) (nats 0 (pow 2 x))).
+    rewrite map_length.
+    rewrite nats_length.
+    apply Rinv_r.
+    apply not_O_INR.
+    intro.
+    assert ((2 <> 0)%nat)...
+    cset (pow_min H1 x).
+    rewrite H0 in H2.
+    apply (lt_irrefl _ H2).
+  intros.
+  destruct (In_map_inv H0).
+  destruct H1...
+Qed.
+
+Require Import Indices.
+
+Definition ijs (n: nat): list (nat * nat) :=
+  concat (map (fun j => map (fun i => (i, j)) (natsBelow j)) (natsBelow n)).
+
+Lemma NoDup_ijs n: NoDup (ijs n).
+Proof with auto.
+  unfold ijs.
+  intro.
+  apply NoDup_concat.
+  unfold natsBelow.
+  cut (forall b, NoDupL (map (fun j => map (fun i => (i, j)) (nats 0 j)) (nats b n)))...
+  induction n; simpl...
+  intros.
+  apply NoDupL_cons...
+    apply NoDup_map.
+      intros.
+      inversion H1...
+    apply NoDup_nats.
+  intros.
+  assert (snd x = b).
+    destruct (In_map_inv H).
+    destruct H0.
+    subst...
+  clear H.
+  intro.
+  destruct (InP_In_inv H).
+  destruct H1.
+  clear H.
+  destruct (In_map_inv H2).
+  destruct H.
+  clear H2.
+  subst x0.
+  destruct (In_map_inv H1).
+  destruct H.
+  clear H1.
+  subst x.
+  destruct (In_nats_inv _ _ _ H3).
+  clear H3.
+  destruct (In_nats_inv _ _ _ H2).
+  clear H2.
+  simpl in H0.
+  subst.
+  omega.
+Qed.
+
+Lemma In_ijs n i j: lt i j -> lt j n -> List.In (i, j) (ijs n).
+Proof with auto.
+  unfold ijs.
+  intros.
+  apply In_concat with (map (fun x: nat => (x, j)) (natsBelow j)).
+    apply (in_map (fun i: nat => (i, j))).
+    apply In_natsBelow...
+  apply (in_map (fun j0: nat => map (fun i0: nat => (i0, j0)) (natsBelow j0))).
+  apply In_natsBelow...
+Qed.
+
+Lemma In_ijs_inv n i j: List.In (i, j) (ijs n) -> (i < j < n)%nat.
+Proof with auto.
+  unfold ijs.
+  simpl.
+  intros.
+  destruct (In_concat_inv _ _ H). clear H.
+  destruct H0.
+  destruct (In_map_inv H0). clear H0.
+  destruct H1.
+  subst.
+  destruct (In_map_inv H). clear H.
+  destruct H0.
+  inversion H.
+  subst.
+  split; apply In_natsBelow_inv...
+Qed.
+
+Lemma expand_sumOver_ijs n (f: nat * nat -> R):
+  RsumOver (ijs n) f =
+  RsumOver (natsBelow n) (fun j => RsumOver (natsBelow j) (fun i => f (i, j))).
+Proof with auto with real.
+  unfold ijs.
+  intros.
+  rewrite RsumOver_concat_map.
+  unfold RsumOver.
+  rewrite (map_ext (fun j => RsumOver (map (fun i => (i, j)) (natsBelow j)) f) (fun j => RsumOver (natsBelow j) (fun i => f (i, j))))...
+  intro.
+  unfold RsumOver.
+  rewrite map_map...
+Qed.
+
+Lemma sumOver_ijs_bound n:
+  RsumOver (ijs n) (fun ij => 2 / INR (S (snd ij - fst ij))) <= 2 * INR n * INR (S (log2ceil n)).
+Proof with auto with real.
+  intro.
+  rewrite expand_sumOver_ijs.
+  simpl snd.
+  simpl fst.
+  apply Rle_trans with (RsumOver (natsBelow n) (fun _ => 2 * INR (S (log2ceil n)))).
+    apply RsumOver_le.
+    intros.
+    unfold natsBelow.
+    fold (compose (fun i => 2 / INR (S i)) (minus x)).
+    rewrite RsumOver_minus...
+    rewrite plus_0_r.
+    rewrite <- minus_n_n...
+    apply Rle_trans with (RsumOver (nats 1 x) (fun i => 2 / INR i)).
+      apply RsumOver_le.
+      intros.
+      unfold Rdiv.
+      apply Rmult_le_compat_l...
+      destruct (In_nats_inv _ _ _ H0).
+      apply Exp_prop.Rle_Rinv...
+    rewrite <- (RsumOver_mult_constant (fun i => / INR i) 2).
+    apply Rmult_le_compat_l...
+    apply Rle_trans with (RsumOver (nats 1 n) (Rinv ∘ INR)).
+      apply RsumOver_nats_le.
+        destruct (In_nats_inv _ _ _ H)...
+      intros.
+      unfold Rdiv.
+      destruct q.
+        inversion H0.
+      unfold compose.
+      apply O_le_inv_INR_S.
+    apply harmonic_upper_bound.
+  fold (compose (Rmult 2) (fun _: nat => INR (S (log2ceil n)))).
+  rewrite <- RsumOver_mult_constant.
+  rewrite Rmult_assoc.
+  unfold RsumOver.
+  rewrite Rsum_constant with (INR (S (log2ceil n))) (map (fun _ => INR (S (log2ceil n))) (natsBelow n)).
+    rewrite map_length.
+    unfold natsBelow.
+    rewrite nats_length...
+  intros.
+  destruct (In_map_inv H).
+  destruct H0...
+Qed.
+
+Require U.
+Require Import Le.
+Require Import Plus.
+Require Import Minus.
+Require Import Lt.
+Require Import Arith.
+Require Import Monads.
+Require Import MonoidMonadTrans.
+Require Import Expec.
+Require Import MonoidExpec.
+Require ListLengthExpec.
+Require Quicksort.
+Require QsParts.
+Require QsSoundCmps.
+Require Import Rbase.
+Require QsCmpProb.
+Require qs_CM_U_expec_cost_eq.
+Require Import SortOrder.
+
+Import Quicksort.mon_nondet.
+
+Implicit Arguments length [[A]].
+
+Section contents.
+
+  Variables (ee: E) (ol: list ee).
+
+  Theorem Umonoid_expec_qs_bounded_by_sumOver_ijs l: IndexSeq 0 l ->
+    @monoid_expec U.monoid length _ (qs (@U.cmp ee ol) U.pick l) <=
+      RsumOver (ijs (length l)) (fun ij => 2 / INR (S (snd ij - fst ij))).
+  Proof with auto with real.
+    unfold RsumOver.
+    intros.
+    assert (NoDup l).
+      apply IndexSeq_NoDup with 0%nat...
+    unfold monoid_expec.
+    rewrite <- (expec_map (@fst U.monoid (list (Index ee ol))) length).
+    apply (ListLengthExpec.exp_list_sum_le U.UcmpDec).
+        apply NoDup_ijs.
+      intros.
+      rewrite expec_map.
+      destruct i.
+      simpl expec.
+      simpl snd.
+      simpl @fst.
+      cset QsCmpProb.qs_comp_prob.
+      unfold monoid_expec in H2.
+      unfold U.ijcount in H2.
+      unfold ListLengthExpec.beq_X.
+      unfold U.UcmpCmp in H2.
+      destruct (In_ijs_inv _ _ _ H1).
+      assert (lt n (length l)).
+        apply lt_trans with n0...
+      destruct (In_map_inv (H _ (le_O_n _) H5)).
+      destruct (In_map_inv (H _ (le_O_n _) H4)).
+      destruct H6. destruct H7.
+      unfold compose in H2.
+      unfold compose.
+      unfold U.monoid in H2.
+      simpl monoid_type in H2.
+      assert (lt x x0).
+        rewrite H6.
+        rewrite H7...
+      cset (H2 ee ol x x0 H10 l 0%nat H).
+      rewrite H6 in H11.
+      rewrite H7 in H11...
+    intros.
+    rewrite expec_map.
+    replace 0 with (INR 0)...
+    apply expec_constant.
+    intros.
+    unfold compose.
+    apply count_0.
+    intros.
+    destruct x0.
+    destruct (QsSoundCmps.qs_sound_cmps_2 l H2 n n0 H3).
+    cset (QsSoundCmps.qs_sound_cmps H2 H0 n n0 H3).
+    unfold ListLengthExpec.beq_X.
+    destruct (U.UcmpDec i (n, n0))...
+    elimtype False.
+    apply H1. clear H1.
+    subst.
+    apply In_ijs...
+    destruct (In_map_inv H5).
+    destruct H1.
+    destruct (IndexSeq_inv H x0 H7).
+    subst...
+  Qed.
+
+  Require NDP.
+
+  Theorem qs_expec_cost:
+    expec cost (NDP.qs ee ol) <= 2 * INR (length ol) * INR (S (log2ceil (length ol))).
+  Proof with auto.
+    intros.
+    apply Rle_trans with (RsumOver (ijs (length ol)) (fun ij => 2 / INR (S (snd ij - fst ij)))).
+      destruct (indices ee ol).
+      destruct H.
+      rewrite H.
+      cset (@qs_CM_U_expec_cost_eq.qs_CM_U_expec_cost_eq ee ol x).
+      simpl monoid_type in H1.
+      rewrite H1.
+      rewrite map_length.
+      apply Umonoid_expec_qs_bounded_by_sumOver_ijs...
+    apply sumOver_ijs_bound.
+  Qed.
+
+End contents.
+
+Theorem qs_avg_complexity (ee: E):
+  over length, expec cost ∘ @NDP.qs ee =O(fun n => INR (n * log2ceil n)).
+Proof with auto with real.
+  unfold NDP.qs.
+  unfold measured_bigO.
+  exists 3.
+  exists 3%nat.
+  intros.
+  rewrite mult_INR.
+  rewrite <- Rmult_assoc.
+  apply Rle_trans with (2 * INR (length x) * INR (S (log2ceil (length x)))).
+    unfold compose.
+    apply qs_expec_cost.
+  intros.
+  rewrite S_INR.
+  rewrite Rmult_plus_distr_l.
+  rewrite Rmult_1_r.
+  rewrite (Rmult_assoc 3).
+  replace 3 with (2+1)...
+  rewrite (Rmult_plus_distr_r 2 1).
+  rewrite Rmult_1_l.
+  rewrite Rmult_assoc.
+  apply Rplus_le_compat_l.
+  rewrite Rmult_comm.
+  apply Rmult_le_compat_l...
+  replace 2 with (INR 2)...
+  apply le_INR.
+  apply le_trans with (log2ceil 3)...
+  apply log2ceil_preserves_le...
+Qed.
+
+Print Assumptions qs_avg_complexity.
