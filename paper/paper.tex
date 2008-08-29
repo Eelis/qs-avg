@@ -106,7 +106,11 @@
 \maketitle
 
 \begin{abstract}
-  We describe a machine-checked proof of Quicksort's $O(n \log n)$ average-case complexity, developed using the Coq system. To represent the algorithm, a shallow embedding is used in which the algorithm is defined as a monadically expressed functional program, with both the counted operation and the monad turned into parameters. Profiling instrumentation is then transparently inserted into this otherwise straightforward algorithm definition by instantiating it with the right monads. The instrumentation is sufficient to support formal yet convenient derivation of key properties of the algorithm's behavior needed by the proof---a step usually omitted in existing proofs. Thus, we directly take advantage of the computational nature of the type theory on which Coq is based.
+As a case-study in machine-checked reasoning about the complexity of algorithms in type theory, we describe a proof of the average-case complexity of Quicksort in Coq.
+The proof attempts to follow a textbook development, at the heart of which lies a technical lemma about the behavior of the algorithm for which the original proof only gives an intuitive justification.
+Our formalization includes a fully formal treatment of this lemma, introducing a number of technical innovations:
+a shallow embedding of the algorithm as a monadically expressed functional program, instantiated with a variety of operation-counting monads that capture worst- and average case complexity of deterministic and non-deterministic programs, generalized to count in an arbitrary monoid (to support a key step in the proof where the expected comparison count is translated into the expected length of a recorded list of all comparisons);
+a small theory of expectation for non-deterministically computed values, featuring both general map-fusion like results, and specific counting arguments.
 \end{abstract}
 
 \section{Introduction}
