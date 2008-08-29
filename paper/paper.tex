@@ -44,6 +44,7 @@
 %format INR (a) = a
 %format /\ = "\wedge "
 %format \/ = "\vee"
+%format <-> = "\leftrightarrow "
 %format MonoidMonadTrans.M = "\Varid{MMT}"
 %format NatAddMonoid = (nat, 0, +)
 
@@ -299,6 +300,20 @@ Because we are often interested in the expected value of a measure of the output
 
 Thus, given a program |P| of type |M_ne_tree (list bool)|, |expec length P| denotes the expected length of the result list, if we interpret values of type |M_ne_tree T| as nondeterministically computed values of type |T|.
 
+|expec| gives rise to a host of identities, including
+
+\begin{code}
+  0 <= expec f t
+  expec (fun x => f x + g x) t = expec f t + expec g t.
+  expec ((* c) fcmp f) = (* c) fcmp expec f
+
+  (forall x `In` t -> f x <= g x) -> expec f t <= expec g t.
+  (forall x `In` t -> f x = c) -> expec f t = c
+  (forall x, x `In` t -> f x = 0) <-> expec f t = 0
+
+  expec f (t >>= (ret fcmp g)) = expec (f fcmp g) t = expec f (ne_tree.map g t)
+\end{code}
+
 To form the monad with which we will instantiate |qs| for the main theorem, we now piggyback the additive monoid on |nat| onto |M_ne_tree| using |MMT|, and call the result |NDP| (for ``non-deterministically profiled''):
 \begin{code}
   Definition M_NDP: Monad := MMT NatAddMonoid M_ne_tree.
@@ -315,15 +330,15 @@ When working with computations in a monad formed by transforming |M_ne_tree| usi
 \end{code}
 Since |cost = fst|, we have |forall t, expec cost t = monoid_expec id t|.
 
-Like |expec|, |monoid_expec| gives rise to several identities. One identity that we would like to highlight is
+In addition to all the identities |monoid_expec| inherits from |expec|, it has some of its own. One identity worth highlighting states that if one transforms |M_ne_tree| using a monoid |m|, then for a monoid homomorphism |h| from |m| to the additive monoid on |nat|, |monoid_expec h| distributes over |bind|, provided that the expected monoid value of the right hand side does not depend on the computed value of the left hand side:
 \begin{code}
   monoid_expec_plus: forall (m: Monoid) (h: m -> nat) (A B: Set)
     (f: MMT m NeTreeMonad A) (g: A -> MMT m NeTreeMonad B):
     (forall x y `In` f -> monoid_expec h (g (snd x)) = monoid_expec h (g (snd y))),
     monoid_expec h (f >>= g) =
-      monoid_expec h f + monoid_expec h (g (snd (ne_tree.head f))),
+      monoid_expec h f + monoid_expec h (g (snd (ne_tree.head f))).
 \end{code}
-which states that if one transforms |M_ne_tree| using a monoid |m|, then for a monoid homomorphism |h| from |m| to the additive monoid on |nat|, |monoid_expec h| distributes over |bind|, provided that the expected monoid value of the right hand side does not depend on the computed value of the left hand side. Since |id| is a monoid homomorphism, |monoid_expec_plus| applies to |NDP| and |expec cost|. In section \ref{reduction}, we will use it with another monoid and homomorphism.
+Since |id| is a monoid homomorphism, |monoid_expec_plus| applies to |NDP| and |expec cost|. In section \ref{reduction}, we will use it with another monoid and homomorphism.
 
 \section{The Statement}
 \label{statement}
@@ -390,7 +405,7 @@ The goal can now be rewritten using
 \end{code}
 The first equality expresses that the expected number of comparisons counted by |NDP| is equal to the expected length of the list of comparisons recorded by |U|. In the code, it is proved as a separate lemma by induction matching either side's |qs|'s recursion. The second equality merely unfolds the definition of |monoid_expec|.
 
-After rewriting once more, this time using\begin{code}expec_fcmp: forall f g t, expec (f fcmp g) t = expec f (ne_tree.map g t),\end{code}the goal becomes
+After rewriting with the last of the identities listed for |expec| in section \ref{nondetexpec}, the goal becomes
 \begin{code}
   expec length (ne_tree.map fst (qs_U li)) <= {-"\displaystyle{\sum_{(i, j) \in \Varid{IJ}}\frac{2}{S (j - i)}}"-}.
 \end{code}
@@ -402,7 +417,7 @@ We now invoke another lemma which bounds a nondeterministically computed list's 
     (forall x `NotIn` q, expec (count x) t = 0) ->
     NoDuplicates q -> expec length t <= {-"\displaystyle{\sum_{\Varid{i} \in \Varid{q}}\Varid{fr}\ \Varid{i}}"-}.
 \end{code}}
-The last of the three subgoals thus generated states that there are no duplicate values in |IJ|, which trivially holds. The second subgoal generated is\begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using |expec_fcmp| backwards, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in the following property which is useful in its own right, as we will see later.
+It is trivially the case that |IJ| does not contain duplicate values. The second subgoal generated is\begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using  the last of the identities listed for |expec| in section \ref{nondetexpec} in reverse, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in the following property which is useful in its own right, as we will see later.
 \begin{code}sound_cmp_expec_0: forall i j li, (i `NotIn` li \/ j `NotIn` li) ->
   monoid_expec (count (i, j)) (U.qs li) = 0,\end{code}
 The proof of |sound_cmp_expec_0|, which we won't show here, is by a separate induction matching |qs|'s recursion.
