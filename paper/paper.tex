@@ -116,7 +116,8 @@ a small theory of expectation for non-deterministically computed values, featuri
 
 \section{Introduction}
 
-Proofs of Quicksort's $O(n \log n)$ average-case complexity are included in many textbooks on computational complexity \cite{introtoalgos} \todo{more}. This paper documents what the authors believe to be the first fully formal machine-checked version of such a proof, developed using the Coq proof assistant \cite{coq}.
+Proofs of Quicksort's $O(n \log n)$ average-case complexity are included in many textbooks on computational complexity \cite[for example, which we followed in this course of this research]{introtoalgos}. %%% \todo{more}. 
+This paper documents what the authors believe to be the first fully formal machine-checked version of such a proof, developed using the Coq proof assistant \cite{coq}.
 
 The formalization is based on the ``paper proof'' in \cite{introtoalgos}, but adds a great deal of theory simply to handle all the details that are omitted in that original. In particular, the latter takes key assertions about the algorithm's behavior for granted. Indeed, it does not even formally define the algorithm in the first place. While this practice is common and perfectly reasonable for paper proofs intended for human consumption, it is a luxury we do not afford ourselves. Hence, a large part of this paper is devoted to the representations we use to define the algorithms, and how they support complexity proofs. These representations take the form of a shallow monadic embedding, and depend critically on the type theoretic nature of Coq's calculus \cite{coq'art}.
 
