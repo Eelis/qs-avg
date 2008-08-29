@@ -162,7 +162,7 @@ For reasons that will become clear in later sections, we compose the monad we wi
 \begin{code}
   Variables (monoid: Monoid) (monad: Monad).
 
-  Let C_MMT: Set -> Set := monad fcmp prod monoid.
+  Let C_MMT (T: Set): Set := monad (monoid * T).
 
   Let ret_MMT (T: Set): T -> C_MMT T := ret fcmp pair (monoid_zero monoid).
 
@@ -243,10 +243,10 @@ Hence, we define
   Program Fixpoint qs (l: list T) {measure length l}: M (list T) :=
     match l with
     | nil => ret nil
-    | h :: t =>
-        i <- pick [0 .. length t];
-        let pivot := nth (h :: t) i in
-        part <- partition pivot (remove (h :: t) i);
+    | _ =>
+        i <- pick [0 ... length l - 1];
+        let pivot := nth l i in
+        part <- partition pivot (remove l i);
         low <- qs (part Lt);
         upp <- qs (part Gt);
         ret (low ++ pivot :: part Eq ++ upp)
@@ -268,9 +268,9 @@ Using tree nondeterminism instead solves the problem.
     | Leaf: T -> ne_tree T
     | Node: ne_list (ne_tree T) -> ne_tree T.
 
-  Definition ret_ne_tree {A: Set}: A -> C A := Leaf.
+  Definition ret_ne_tree {A: Set}: A -> ne_tree A := Leaf.
 
-  Fixpoint bind_ne_tree (A B: Set) (m: C A) (k: A -> C B): C B :=
+  Fixpoint bind_ne_tree (A B: Set) (m: ne_tree A) (k: A -> ne_tree B): ne_tree B :=
     match m with
     | Leaf a => k a
     | Node ts => Node (ne_list.map (fun x => bind_ne_tree x k) ts)
@@ -281,7 +281,7 @@ Using tree nondeterminism instead solves the problem.
   Definition pick_ne_tree (T: Set): ne_list T -> M_ne_tree T
     := Node fcmp ne_list.map Leaf.
 \end{code}
-(We use non-empty trees because are not interested in computations that produce no values at all, and using potentially empty trees would complicate the definition of a tree's average value below.)
+(We use non-empty trees because we do not consider computations that produce no values at all, and using potentially empty trees would complicate the definition of a tree's average value below.)
 
 With this monad and pick operation, the same program now produces the tree |Node [Leaf 0, Node [Leaf 1, Leaf 2]]|, which preserves the relative probabilities. The expected value now coincides with the weighted average of these trees:
 \begin{code}
@@ -311,15 +311,14 @@ To form the monad with which we will instantiate |qs| for the main theorem, we n
 When working with computations in a monad formed by transforming |M_ne_tree| using |MMT|, we are often interested in the expected value of a function of the piggybacked monoid. For this, we introduce |monoid_expec|.
 \begin{code}
   Definition monoid_expec (m: Monoid) (f: m -> nat) {A: Set}
-    : MonoidMonadTrans.M m NeTreeMonad A -> R := expec (f fcmp fst).
+    : (MonoidMonadTrans.M m NeTreeMonad A) -> R := expec (f fcmp fst).
 \end{code}
-Thus, we have |forall t, expec cost t = monoid_expec id t|.
+Since |cost = fst|, we have |forall t, expec cost t = monoid_expec id t|.
 
 Like |expec|, |monoid_expec| gives rise to several identities. One identity that we would like to highlight is
 \begin{code}
   monoid_expec_plus: forall (m: Monoid) (h: m -> nat) (A B: Set)
     (f: MMT m NeTreeMonad A) (g: A -> MMT m NeTreeMonad B):
-
     (forall x y `In` f -> monoid_expec h (g (snd x)) = monoid_expec h (g (snd y))),
     monoid_expec h (f >>= g) =
       monoid_expec h f + monoid_expec h (g (snd (ne_tree.head f))),
@@ -371,7 +370,7 @@ where |sort| may be any sorting function (including |qs| itself), and where |li|
 
 Next, we introduce a specialized monad and comparison operation that go one step further in focusing specifically on these indices.
 \begin{code}
-  Definition Monoid_U: Monoid := (nat * nat, nil, ++).
+  Definition Monoid_U: Monoid := (list (nat * nat), nil, ++).
 
   Definition U: Monad := MonoidMonadTrans.M Monoid_U NeTreeMonad.
 
@@ -383,13 +382,13 @@ Next, we introduce a specialized monad and comparison operation that go one step
 
   Definition qs_U: list nat -> list nat := qs cmp_U pick_U.
 \end{code}
-|qs_U| operates directly on a list of natural numbers representing indices into |sort l|. Comparison of indices is defined by comparison of the |T| values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of compared indices, by using |MMT| with the free monoid over |nat * nat| pairs, instead of the additive monoid on |nat| we used up until now.
+|qs_U| operates directly on a list of natural numbers representing indices into |sort l|. Comparison of indices is defined by comparison of the |T| values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of compared indices, by using |MMT| with |Monoid_U|, the free monoid over |nat * nat| pairs, instead of the additive monoid on |nat| we used up until now.
 
 The goal can now be rewritten using
 \begin{code}expec cost (qs_NDP (map (nth (sort l)) li))
   = monoid_expec length (qs_U li) = expec (length fcmp fst) (qs_U li).
 \end{code}
-The first equality is justified by a separate induction matching either side's |qs|'s recursion, proving that counting comparisons as they appear is really the same as recording them in a list and then computing the length of the resulting list.
+The first equality expresses that the expected number of comparisons counted by |NDP| is equal to the expected length of the list of comparisons recorded by |U|. In the code, it is proved as a separate lemma by induction matching either side's |qs|'s recursion. The second equality merely unfolds the definition of |monoid_expec|.
 
 After rewriting once more, this time using\begin{code}expec_fcmp: forall f g t, expec (f fcmp g) t = expec f (ne_tree.map g t),\end{code}the goal becomes
 \begin{code}
@@ -408,7 +407,7 @@ The last of the three subgoals thus generated states that there are no duplicate
   monoid_expec (count (i, j)) (U.qs li) = 0,\end{code}
 The proof of |sound_cmp_expec_0|, which we won't show here, is by a separate induction matching |qs|'s recursion.
 
-This leaves but one subgoal which, expressed using a |monoid_expec|, reads
+This leaves but one subgoal which, expressed with |monoid_expec|, reads
 \begin{code}
   forall (i, j) `In` IJ, monoid_expec (count (i, j)) (qs_U li) <= 2 / INR (S (j - i)).
 \end{code}
@@ -512,7 +511,7 @@ monoid_expec (count (i, j))
 monoid_expec (count (i, j))
   (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest)) <= 2 / INR (S (j - i))
 \end{code}
-All indices in the lower filtered part denote elements that compare less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that the indices areless than |pivot|. By |sound_cmp_expec_0|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons, so the first |monoid_expec| term vanishes as well, leaving
+All indices in the lower filtered part denote elements that compare less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that the indices are less than |pivot|. By |sound_cmp_expec_0|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons, so the first |monoid_expec| term vanishes as well, leaving
 \begin{code}
 monoid_expec (count (i, j))
   (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest)) <= 2 / INR (S (j - i)).
@@ -535,7 +534,7 @@ In the interest of brevity, we have omitted innumerable details and lemmas in th
 \begin{itemize}
 \item We have pretended to have used ordinary natural numbers as indices into ordinary lists, completely ignoring the inescapable issues of index validity that could not be ignored in the actual formalization. There, we use vectors (lists whose size is part of their type) and bounded natural numbers in many places instead. Using these substantially reduces the amount of |i < length l| proofs that need to be produced, converted, and passed around, but the issue is still far from painless.
 \item Using the |Program| facility to deal with quicksort's non-structural recursion was not completely as trivial as we made it out to be. To make proving the generated proof obligations possible, the types of |filter| and |partition| had to be sigma-decorated with modest length guarantees, because the opacity of the unspecified monad's |bind| operation prevented |Program| from being able to ``see'' the relation between the function's parameters and the arguments it passed in its recursive calls.
-\item The definitions produced by |Program| use clever recursion operators that translate a well-founded relation into a form that can be structurally recursed on. Consequently, corresponding induction principles are similarly clever. Using these induction principles for a function already defined with two layers of monadicity quickly became unwieldy. To deal with this, we defined a series of induction principles specialized for specific instances of |qs|, which put the recursive proof obligation in as simple terms as possible, with as little monadic indirection as possible, using among other things the observations regarding determinism of the comparison operation, as described in section \ref{finishing}.
+\item Using the induction principles corresponding to the definitions produced by |Program| for a function already defined with two layers of monadicity quickly became unwieldy. To deal with this, we defined a series of specialized induction principles for specific instances of |qs|, which put the recursive proof obligation in as simple terms as possible, with as little monadic indirection as possible, using among other things the observations regarding determinism of the comparison operation, as described in section \ref{finishing}.
 \end{itemize}
 
 For all the gruesome details, we refer the interested reader to the Coq source files.
