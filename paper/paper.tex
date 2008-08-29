@@ -89,6 +89,8 @@
 
 \def\typeset{}
 
+\usepackage{macros}
+
 \newcommand{\todo}[1]{\textcolor{magenta}{[TODO: #1]}}
 
 \begin{document}
@@ -107,11 +109,7 @@
 \maketitle
 
 \begin{abstract}
-As a case-study in machine-checked reasoning about the complexity of algorithms in type theory, we describe a proof of the average-case complexity of Quicksort in Coq.
-The proof attempts to follow a textbook development, at the heart of which lies a technical lemma about the behavior of the algorithm for which the original proof only gives an intuitive justification.
-Our formalization includes a fully formal treatment of this lemma, introducing a number of technical innovations:
-a shallow embedding of the algorithm as a monadically expressed functional program, instantiated with a variety of operation-counting monads that capture worst- and average case complexity of deterministic and non-deterministic programs, generalized to count in an arbitrary monoid (to support a key step in the proof where the expected comparison count is translated into the expected length of a recorded list of all comparisons);
-a small theory of expectation for non-deterministically computed values, featuring both general map-fusion like results, and specific counting arguments.
+  \input{abstract.ltx}
 \end{abstract}
 
 \section{Introduction}
