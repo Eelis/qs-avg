@@ -117,12 +117,33 @@
 
 \section{Introduction}
 
-Proofs of Quicksort's $O(n \log n)$ average-case complexity are included in many textbooks on computational complexity \cite[for example, which we followed in this course of this research]{introtoalgos}. %%% \todo{more}. 
+Proofs of the $O(n \log n)$ average-case complexity of Quicksort \cite{HoareQuick} are included in many textbooks on computational complexity \cite[for example]{introtoalgos}.
 This paper documents what the authors believe to be the first fully formal machine-checked version of such a proof, developed using the Coq proof assistant \cite{coq}.
 
-The formalization is based on the ``paper proof'' in \cite{introtoalgos}, but adds a great deal of theory simply to handle all the details that are omitted in that original. In particular, the latter takes key assertions about the algorithm's behavior for granted. Indeed, it does not even formally define the algorithm in the first place. While this practice is common and perfectly reasonable for paper proofs intended for human consumption, it is a luxury we do not afford ourselves. Hence, a large part of this paper is devoted to the representations we use to define the algorithms, and how they support complexity proofs. These representations take the form of a shallow monadic embedding, and depend critically on the type theoretic nature of Coq's calculus \cite{coq'art}.
+The formalization is based on the ``paper proof'' in \cite{introtoalgos}, which consists of three parts. The first part argues that the total number of comparisons performed by the algorithm can be written as a sum of probabilities of comparisons between individual pairs of elements from the input list. The second part then derives from the algorithm a specific formula for those probabilities. Finally, the third and last part employs some analysis involving the harmonic series to derive the $O(n \log n)$ bound from the sum-of-probabilities. Thus, the first part essentially establishes an elementwise-comparison-probability lemma as an interface between the second and third part, proved by the former and used by the latter.
 
-Section \ref{embed} introduces the basic idea of the embedding, and demonstrates its use by briefly proving Quicksort's quadratic worst-case complexity with it. In section \ref{nondetexpec}, the technique is expanded to handle the notion of the \emph{expected value} of non-deterministic programs, which then lets us state the main theorem in section \ref{statement}. Sections \ref{reduction} and \ref{finishing} detail the actual proof. Section \ref{conclusion} ends with conclusions and final remarks.
+Of these three parts, only the first two require reasoning about the actual behavior of the algorithm---the third part is just ordinary mathematics. While the original proof provides a thorough treatment of the third part, its treatment of the first two parts is informal in two major ways.
+
+First, it never actually justifies anything in terms of the algorithm's formal semantics. Indeed, it does not even formally define the algorithm in the first place. Instead, it relies on assertions which are taken to be intuitively true. While this practice is common and perfectly reasonable for paper proofs intended for human consumption, it is a luxury we do not afford ourselves.
+
+Second, the original proof (implicitly) assumes that the input list does not contain any duplicate elements, which significantly simplifies its derivation of the formula for the probability of any two given elements being compared by the algorithm. We do not make this assumption.
+  % todo: bring this up later.
+
+The key to giving a proper formal treatment of both of these issues lies in the use of an appropriate representation of the algorithm, capable of capturing its computational behavior---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. The representation we use takes the form of a shallow monadic embedding, in which the algorithm is written as a monadically expressed functional program. This definition is then instantiated with refinements of operation-counting monads to make the number of comparisons performed observable.
+
+The embedding is introduced in section \ref{embed}, where we demonstrate its use by first defining a simple deterministic Quicksort implementation (which just selects the head of the input list as its pivot element, and uses two separate filter passes to partition the input list), and then proving that implementation's quadratic worst-case complexity.
+
+In preparation of the more complex average-case theorem, we then define (in section \ref{nondetexpec}) a nondeterministic Quicksort implementation which selects pivot elements at random, and which uses a single three-way partition pass instead of a two two-way filter passes. We also introduce a monad that combines operation counting with nondeterminism, supporting a formal definition of the notion of the \emph{expected} number of comparisons that are performed.
+
+Instantiating the nondeterministic implementation with this monad then lets us state the main theorem in section \ref{statement}.
+
+The next two sections detail the actual formalized proof. Section \ref{reduction} corresponds to the first part in the original proof, and shows how the main theorem can be split up into a lemma (stated in terms of another special-purpose monad) about the probability of comparisons being performed for pairs of input elements indexed a certain way, and a strictly numerical part.
+
+Since we were able to fairly directly transcribe the latter part from the paper proof, using the existing real-number theory in the Coq standard library with few complications and additions, we omit a discussion of it in this paper and refer the interested reader to the paper proof.
+
+Section \ref{finishing} shows the proof of the lemma mentioned above, and corresponds to the part in the original proof that derives the probability formula from the algorithm. Since this is the part where the original proof omits the most detail, and makes the assumption regarding duplicate elements, and where we really have to reason about the detailed behavior of the algorithm, it is by far the most involved part of the formalization.
+
+Section \ref{conclusion} ends with conclusions and final remarks.
 
 The Coq source files containing the entire formalization can be downloaded from \url{http://www.eelis.net/research/quicksort/}. The Coq version used is 8.2 beta 2.
 
