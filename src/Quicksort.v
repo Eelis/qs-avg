@@ -16,36 +16,100 @@ Require Import Recdef.
 Require Import MonoidMonadTrans.
 Require Import Compare_dec.
 Require Coq.Program.Wf.
-(*Require Import ListUtils.*)
 Require Import Wf_nat.
 Require Import ArithLems.
 Require Omega.
 
+Require FixMeasureSubLems.
+
 (*Extraction Language Haskell.*)
-
-(*Require Import Compare_dec.*)
-
-(*Definition ltb (x y: nat): bool := negb (leb y x).
-Definition geb (x y: nat): bool := leb y x.*)
 
 Definition numbers: list nat := 3 :: 1 :: 0 :: 4 :: 5 :: 2 :: nil.
 
 Hint Resolve length_filter_le.
 
-Module nonmonadic_using_Program.
+Module nonmonadic.
+Section nonmonadic.
 
-  Program Fixpoint qs (l: list nat) {measure length l}: list nat :=
+  Variables (T: Set) (le: T -> T -> bool).
+
+  Definition gt (x y: T): bool := negb (le x y).
+
+  Program Fixpoint qs (l: list T) {measure length l}: list T :=
     match l with
     | nil => nil
-    | pivot :: t => qs (filter (geb pivot) t) ++ (pivot :: nil) ++ qs (filter (ltb pivot) t)
+    | pivot :: t => qs (filter (gt pivot) t) ++ (pivot :: nil) ++ qs (filter (le pivot) t)
     end.
 
   Next Obligation. simpl; auto with arith. Qed.
   Next Obligation. simpl; auto with arith. Qed.
 
+  Definition body (l : list T) (qs0 : {l' : list T | length l' < length l} -> list T) :=
+    match l as l0 return (l0 = l -> list T) with
+    | nil => fun _ => nil
+    | pivot :: t0 => fun Heq_l =>
+      qs0 (exist (fun l' => length l' < length l) (filter (gt pivot) t0) (qs_obligation_1 qs0 Heq_l)) ++
+      (pivot :: nil) ++
+      qs0 (exist (fun l' => length l' < length l) (filter (le pivot) t0) (qs_obligation_2 qs0 Heq_l))
+    end (refl_equal l).
+
+  Lemma body_eq:
+    forall (x0 : list T) (g h0 : {y : list T | length y < length x0} -> list T),
+    (forall (x : list T) (p p' : length x < length x0),
+    g (exist (fun y : list T => length y < length x0) x p) =
+    h0 (exist (fun y : list T => length y < length x0) x p')) ->
+    body x0 g = body x0 h0.
+  Proof with auto.
+    intros.
+    destruct x0...
+    simpl.
+    f_equal...
+    f_equal...
+  Qed.
+
+  Lemma unfold: forall l, qs l = Fix_measure_sub (list T) (fun l0 : list T => length l0) (fun _ : list T => list T) body l.
+  Proof. reflexivity. Qed.
+
+  Lemma qs_unfold (t: list T) (h: T): qs (h :: t) = qs (filter (gt h) t) ++ (h :: nil) ++ qs (filter (le h) t).
+  Proof with auto.
+    intros.
+    unfold qs.
+    fold body.
+    rewrite FixMeasureSubLems.unfold.
+      unfold body at 1.
+      simpl proj1_sig.
+      f_equal.
+    apply body_eq.
+  Qed.
+
+  Section rect.
+
+    Variable P: list T -> list T -> Prop.
+
+    Hypothesis Pnil: P nil nil.
+
+    Hypothesis Pcons: forall h t,
+      P (filter (gt h) t) (qs (filter (gt h) t)) ->
+      P (filter (le h) t) (qs (filter (le h) t)) -> P (h :: t) (qs (filter (gt h) t) ++ h :: nil ++ qs (filter (le h) t)).
+
+    Lemma qs_rect: forall l, P l (qs l).
+    Proof with auto with arith.
+      unfold qs.
+      fold body.
+      apply FixMeasureSubLems.recti2.
+        apply body_eq.
+      intros.
+      destruct x...
+      simpl.
+      apply Pcons; apply H; unfold MR; simpl...
+    Qed.
+
+  End rect.
+
   (*Eval vm_compute in qs numbers.*)
 
-End nonmonadic_using_Program.
+End nonmonadic.
+End nonmonadic.
 
 (*
 Module nonmonadic_using_wf_ind.
@@ -77,12 +141,32 @@ Section mon_det. (* For variable discharging. *)
     induction l.
       refine (ret (exist _ nil _))...
     refine (
-      t <- IHl ;
-      let (x, l0) := t in
       b <- c a ;
-      ret (if b then exist _ (a :: x) _ else exist _ x _)
-    ); simpl...
+      t <- IHl ;
+      ret (if b then exist _ (a :: proj1_sig t) _ else exist _ (proj1_sig t) _)
+    ); simpl; destruct t...
   Defined.
+
+  Lemma hm (e: extMonad M) c l U (f: list T -> M U) g:
+    ext_eq g (f ∘ @proj1_sig _ _) -> filter c l >>= g = filterM c l >>= f.
+  Proof with auto. (* todo: rename *)
+    induction l.
+      simpl. intros.
+      repeat rewrite mon_lunit.
+      rewrite H.
+      unfold compose...
+    intros.
+    simpl.
+    repeat rewrite mon_assoc.
+    apply e. intro.
+    repeat rewrite mon_assoc.
+    apply IHl.
+    intro. unfold compose.
+    repeat rewrite mon_lunit.
+    rewrite H.
+    unfold compose.
+    destruct x...
+  Qed.
 
   Fixpoint simple_filter (c: T -> M bool) (l: list T): M (list T) :=
     match l with
@@ -93,10 +177,21 @@ Section mon_det. (* For variable discharging. *)
       ret (if b then h :: t' else t')
     end.
 
+  Definition fold_filter (c: T -> M bool): list T -> M (list T) :=
+    foldrM (fun x l => b <- c x ; ret (if b then x :: l else l)) nil.
+
+  Lemma simple_fold_filter: forall c l, simple_filter c l = fold_filter c l.
+  Proof with auto.
+    unfold fold_filter.
+    induction l...
+    simpl.
+    rewrite IHl...
+  Qed.
+
   Variable le: T -> T -> M bool.
 
   Definition gt (x y: T): M bool := liftM negb (le x y).
-
+(*
   Definition simple_qs: list T -> M (list T).
   Proof with unfold MR; simpl; auto with arith.
     refine (well_founded_induction (measure_wf lt_wf (@length T)) (fun _ => M (list T)) (fun x =>
@@ -113,7 +208,7 @@ Section mon_det. (* For variable discharging. *)
   Proof.
     (* no good, firewall *)
   Abort.
-
+*)
   Program Fixpoint qs (l: list T) {measure length l}: M (list T) :=
     match l with
     | nil => ret nil
@@ -126,6 +221,70 @@ Section mon_det. (* For variable discharging. *)
   Next Obligation. simpl. auto with arith. Qed.
   Next Obligation. simpl. auto with arith. Qed.
     (* "Solve All Obligations using ..." does not seem to work. *)
+
+  Definition body (l: list T) (qs0: {l': list T | length l' < length l} -> M (list T)) :=
+    match l as l1 return (l1 = l -> M (list T)) with
+    | nil => fun _ => ret (m:=M) nil
+    | pivot :: t => fun Heq_l =>
+        lower <-
+          x <- filter (gt pivot) t;
+          qs0 (exist _ (proj1_sig x) (qs_obligation_1 qs0 Heq_l x));
+        upper <-
+          x <- filter (le pivot) t;
+          qs0 (exist _ (proj1_sig x) (qs_obligation_2 qs0 Heq_l lower x));
+        ret (m:=M) (lower ++ pivot :: upper)
+    end (refl_equal l).
+
+  Lemma unfold: forall l, qs l =
+    Fix_measure_sub (list T) (fun l0 : list T => length l0) (fun _ : list T => M (list T)) body l.
+  Proof. reflexivity. Qed.
+
+  Variable e: extMonad M.
+
+  Lemma body_eq:
+    forall (x0 : list T)
+     (g h : {y : list T | length y < length x0} -> M (list T)),
+    (forall (x1 : list T) (p p' : length x1 < length x0),
+     g (exist (fun y : list T => length y < length x0) x1 p) =
+     h (exist (fun y : list T => length y < length x0) x1 p')) ->
+    body x0 g = body x0 h.
+  Proof with auto.
+    intros. destruct x0...
+    simpl.
+    rewrite mon_assoc. rewrite mon_assoc.
+    apply e. intro.
+    simpl length in H.
+    rewrite (H (proj1_sig x) (qs_obligation_1 g (refl_equal (t :: x0)) x) (qs_obligation_1 h (refl_equal (t :: x0)) x)).
+    apply e. intro.
+    do 2 rewrite mon_assoc.
+    apply e. intro.
+    rewrite (H (proj1_sig x2) (qs_obligation_2 g (refl_equal (t :: x0)) x1 x2)  (qs_obligation_2 h (refl_equal (t :: x0)) x1 x2))...
+  Qed.
+
+  Lemma unfold' pivot t: qs (pivot :: t) =
+    lower <- filterM (gt pivot) t >>= qs;
+    upper <- filterM (le pivot) t >>= qs;
+    ret (lower ++ pivot :: upper).
+  Proof with auto. (* todo: rename *)
+    intros.
+    unfold qs at 1.
+    simpl.
+    fold body.
+    rewrite FixMeasureSubLems.unfold.
+      simpl.
+      repeat rewrite mon_assoc.
+      apply hm...
+      intro.
+      unfold compose.
+      unfold qs.
+      fold body.
+      apply e.
+      intro.
+      repeat rewrite mon_assoc.
+      apply hm...
+      intro...
+    apply body_eq.
+  Qed.
 
 (*
   Definition qs: list T -> M (list T).
@@ -148,6 +307,28 @@ End mon_det.
 End mon_det.
 
 Implicit Arguments mon_det.qs [M T].
+
+Lemma mon_det_nonmonadic_eq (X: Set) (Xle: X -> X -> Prop) (leb: X -> X -> IdMonad.M bool):
+    forall l, mon_det.qs leb l = nonmonadic.qs leb l.
+Proof with auto.
+  intros.
+  pattern l, (nonmonadic.qs leb l).
+  apply nonmonadic.qs_rect...
+  simpl.
+  intros.
+    rewrite mon_det.unfold'.
+    simpl. unfold IdMonad.bind, IdMonad.ret.
+    do 2 rewrite <- filterM_id.
+    rewrite H0.
+    unfold mon_det.gt.
+    unfold nonmonadic.gt in H.
+    simpl. unfold IdMonad.bind, IdMonad.ret.
+    rewrite H...
+  intro...
+Qed.
+
+  (* Ideally we would like the much stronger property that nonmonadic.qs leb = mon_det.qs leb,
+  but all the obligation and sigma'd filter stuff gets in the way. *)
 
 Definition profiled_leb (x y: nat): SimplyProfiled bool := (1, leb x y).
 Eval vm_compute in mon_det.qs profiled_leb numbers.

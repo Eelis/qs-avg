@@ -44,6 +44,10 @@ Implicit Arguments func_map [f a b].
 
 Definition extMonad (M: Monad): Prop := forall (A B: Set) (f g: A -> M B), ext_eq f g -> forall x, bind x f = bind x g.
 
+Lemma bind_eqq (M: Monad) (e: extMonad M) (A B: Set) (m n: M A) (f g: A -> M B):
+  m = n -> ext_eq f g -> (m >>= f) = (n >>= g).
+Proof. intros. subst. apply e. assumption. Qed.
+
 Definition extFlipped (M: Monad): extMonad M -> forall A (x: M A) (B: Set) (f g: A -> M B), ext_eq f g -> bind x f = bind x g.
 Proof. auto. Defined.
 
@@ -117,11 +121,13 @@ Module IdMonad.
 
 End IdMonad.
 
+Unset Elimination Schemes.
+
 Inductive Tree (A: Set): Set :=
   | Leaf: A -> Tree A
   | Node: list (Tree A) -> Tree A.
 
-Reset Tree_ind.
+Set Elimination Schemes.
 
 Definition Tree_ind
   : forall (A: Set) (P : Tree A -> Prop),
@@ -347,26 +353,41 @@ Section MonadToys.
   Definition liftM2 (A B C: Set) (f: A -> B -> C) (M: Monad) (x: M A) (y: M B): M C :=
     xv <- x ; yv <- y ; ret (f xv yv).
 
-  Fixpoint foldM' (A B: Set) (M: Monad) (f: A -> B -> M A) (l: list B) (x: A) {struct l}: M A :=
+  Fixpoint foldlM {A B: Set} {M: Monad} (f: A -> B -> M A) (x: A) (l: list B) {struct l}: M A :=
     match l with
     | nil => ret x
-    | h :: t => f x h >>= foldM' M f t
-    end.
+    | h :: t => fax <- f x h ; foldlM f fax t
+    end. (* Haskell's foldM *)
 
-  Fixpoint foldM (A B: Set) (M: Monad) (f: A -> B -> M A) (x: A) (l: list B) {struct l}: M A :=
+  Fixpoint foldrM {A B: Set} {M: Monad} (f: B -> A -> M A) (x: A) (l: list B) {struct l}: M A :=
     match l with
     | nil => ret x
-    | h :: t => fax <- f x h ; foldM M f fax t
-    end.
+    | h :: t => t' <- foldrM f x t; f h t'
+    end. (* missing in Haskell.. *)
 
-  Lemma foldM_cons (A B: Set) (M: Monad) (f: A -> B -> M A) (x: A) (h: B) (t: list B):
-    foldM M f x (h :: t) = fax <- f x h ; foldM M f fax t.
+  Lemma foldlM_cons (A B: Set) (M: Monad) (f: A -> B -> M A) (x: A) (h: B) (t: list B):
+    foldlM f x (h :: t) = fax <- f x h ; foldlM f fax t.
   Proof. auto. Qed.
+
+  Fixpoint filterM {A: Set} {M: Monad} (p: A -> M bool) (l: list A): M (list A) :=
+    match l with
+    | nil => ret nil
+    | h :: t =>
+      b <- p h ;
+      t' <- filterM p t ;
+      ret (if b then h :: t' else t')
+    end. (* as in Haskell *)
+
+  Lemma filterM_id (A: Set) (p: A -> IdMonad.M bool) (l: list A): filter p l = filterM p l.
+  Proof with auto.
+    induction l...
+    simpl.
+    rewrite IHl...
+  Qed.
 
 End MonadToys.
 
 Implicit Arguments liftM [A B M].
-Implicit Arguments foldM [A B M].
 
 Record MonadTrans: Type :=
   { transMonad: forall (m: Monad), extMonad m -> Monad

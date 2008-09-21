@@ -81,7 +81,7 @@ Section contents.
     rewrite MonoidMonadTrans.bind_toLower in H3.
     rewrite (@mon_assoc NeTreeMonad.M ) in H3.
     destruct (NeTreeMonad.In_bind_inv _ _ H3). clear H3. destruct H4.
-    extro H0.
+    revert H0.
     rewrite (@mon_assoc NeTreeMonad.M) in H4.
     rewrite MonoidMonadTrans.ret_toLower in H4.
     rewrite (@mon_lunit NeTreeMonad.M) in H4.
@@ -151,7 +151,7 @@ Section contents.
     rewrite MonoidMonadTrans.bind_toLower in H4.
     rewrite (@mon_assoc NeTreeMonad.M ) in H4.
     destruct (NeTreeMonad.In_bind_inv _ _ H4). clear H4. destruct H5.
-    extro H0.
+    revert H0.
     rewrite (@mon_assoc NeTreeMonad.M) in H5.
     rewrite MonoidMonadTrans.ret_toLower in H5.
     rewrite (@mon_lunit NeTreeMonad.M) in H5.
@@ -190,7 +190,6 @@ Require Import Rbase.
   Lemma sound_cmp_expec_0 i j (l: list (Index ee ol)):
     (~ In i l \/ ~ In j l) -> monoid_expec (U.ijcount i j) (qs l) = 0.
   Proof with auto.
-(*    subst qs.*)
     intros.
     unfold monoid_expec.
     replace 0 with (INR 0)...

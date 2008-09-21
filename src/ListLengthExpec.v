@@ -40,7 +40,7 @@ Section contents.
     apply (expec_0_inv (count (beq_X i))) with t...
   Qed.
 
-  Lemma exp_list_sum_le (fr: X -> R) (q: list X) (nd: NoDup q) (t: ne_tree.T (list X)):
+  Lemma exp_list_sum_le (fr: X -> R) (q: list X) (t: ne_tree.T (list X)):
     (forall i, In i q -> expec (count (beq_X i)) t <= fr i) ->
     (forall i, ~ In i q -> expec (count (beq_X i)) t = 0) ->
     expec length t <= Rsum (map fr q).
@@ -58,7 +58,6 @@ Section contents.
     rewrite expec_plus.
     apply Rle_trans with (fr a + expec (count (fun t0: X => negb (beq_X a t0))) t)...
     apply Rplus_le_compat_l.
-    inversion_clear nd...
     apply Rle_trans with (expec length (ne_tree.map (filter (fun x: X => negb (beq_X a x))) t)).
       rewrite expec_map.
       apply expec_le.
@@ -101,7 +100,7 @@ Section contents.
         apply count_filter_le.
       rewrite H0...
       intro.
-      destruct H4...
+      destruct H2...
     apply expec_nonneg.
   Qed.
 

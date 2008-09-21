@@ -71,47 +71,6 @@ Require Import Indices.
 Definition ijs (n: nat): list (nat * nat) :=
   concat (map (fun j => map (fun i => (i, j)) (natsBelow j)) (natsBelow n)).
 
-Lemma NoDup_ijs n: NoDup (ijs n).
-Proof with auto.
-  unfold ijs.
-  intro.
-  apply NoDup_concat.
-  unfold natsBelow.
-  cut (forall b, NoDupL (map (fun j => map (fun i => (i, j)) (nats 0 j)) (nats b n)))...
-  induction n; simpl...
-  intros.
-  apply NoDupL_cons...
-    apply NoDup_map.
-      intros.
-      inversion H1...
-    apply NoDup_nats.
-  intros.
-  assert (snd x = b).
-    destruct (In_map_inv H).
-    destruct H0.
-    subst...
-  clear H.
-  intro.
-  destruct (InP_In_inv H).
-  destruct H1.
-  clear H.
-  destruct (In_map_inv H2).
-  destruct H.
-  clear H2.
-  subst x0.
-  destruct (In_map_inv H1).
-  destruct H.
-  clear H1.
-  subst x.
-  destruct (In_nats_inv _ _ _ H3).
-  clear H3.
-  destruct (In_nats_inv _ _ _ H2).
-  clear H2.
-  simpl in H0.
-  subst.
-  omega.
-Qed.
-
 Lemma In_ijs n i j: lt i j -> lt j n -> List.In (i, j) (ijs n).
 Proof with auto.
   unfold ijs.
@@ -239,7 +198,6 @@ Section contents.
     unfold monoid_expec.
     rewrite <- (expec_map (@fst U.monoid (list (Index ee ol))) length).
     apply (ListLengthExpec.exp_list_sum_le U.UcmpDec).
-        apply NoDup_ijs.
       intros.
       rewrite expec_map.
       destruct i.

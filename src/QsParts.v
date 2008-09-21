@@ -10,7 +10,6 @@ Require Import List.
 Require Import Monads.
 Require Import ListUtils.
 Require Import Coq.Program.Wf.
-(*Require Import Wf_nat.*)
 Require Import MonoidMonadTrans.
 Require Import nats_below.
 Require Import MonoidTreeMonad.
@@ -24,14 +23,6 @@ Import Quicksort.mon_nondet.
 Section contents.
 
   Variable M: Monad.
-
-  Lemma bind_eqq (e: extMonad M) (A B: Set) (m n: M A) (f g: A -> M B): m = n -> ext_eq f g -> (m >>= f) = (n >>= g).
-  Proof.
-    intros.
-    subst.
-    apply e.
-    assumption.
-  Qed.
 
   Variables (X: Set) (pick: forall T: Set, ne_list.L T -> M T) (cmp: X -> X -> M comparison).
 
@@ -79,22 +70,6 @@ Section contents.
     intro...
   Qed.
 
-  Lemma measure_proof_irrelevant l a a':
-    Wf.Fix_measure_F_sub (list X) (fun l => length l) (fun _: list X => M (list X)) raw_body l a =
-    Wf.Fix_measure_F_sub (list X) (fun l => length l) (fun _: list X => M (list X)) raw_body l a'.
-  Proof with auto.
-    intros.
-    apply (FixMeasureSubLems.eq_Fix_measure_F_sub (fun l => length l) (fun _: list X => M (list X))).
-    intros.
-    apply raw_body_ext.
-    intros.
-    destruct x.
-    destruct y.
-    simpl in H0.
-    subst x1.
-    apply H.
-  Qed.
-
   Lemma bodies x0:
     raw_body x0 (fun y: {y: list X | length y < length x0} => qs (M:=M) cmp pick (proj1_sig y)) = body x0.
   Proof.
@@ -108,21 +83,16 @@ Section contents.
     intro.
     unfold qs.
     fold raw_body.
-    unfold Wf.Fix_measure_sub.
-    rewrite FixMeasureSubLems.F_unfold.
-    rewrite <- bodies.
-    unfold qs. fold raw_body.
-    apply raw_body_ext.
-    intros x y j.
-    generalize (Acc_inv (lt_wf (length l)) (proj2_sig x)).
-    rewrite j.
+    rewrite FixMeasureSubLems.unfold.
+      rewrite <- bodies.
+      unfold qs. fold raw_body...
     intros.
-    unfold Wf.Fix_measure_sub.
-    apply measure_proof_irrelevant.
+    apply raw_body_ext.
+    intros.
+    destruct x. destruct y.
+    simpl in H0.
+    subst...
   Qed.
-(*
-  Lemma vec_vec_round_trip  (J: Set) (n: nat) (v: vector J n): vec.from_list (vec.to_list v) = v.
-*)
 
   Lemma toBody_cons (n: nat) (v: vector X (S n)): body v = selectPivotPart v.
     intros.

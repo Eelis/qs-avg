@@ -92,7 +92,7 @@ Section monadic.
     end.
   Proof. destruct l; auto. Qed.
 
-  Definition isort: list T -> M (list T) := foldM insert nil.
+  Definition isort: list T -> M (list T) := foldlM insert nil.
 
   Hypothesis run: forall U, M U -> U.
   Implicit Arguments run [U].
@@ -143,12 +143,12 @@ Section quadratic.
   Qed.
 
   Lemma fold_insert_cost (x y: list T):
-    cost (foldM (insert _ mle) y x) <= length y * length x + div2 (sqrd (length x)).
+    cost (foldlM (insert _ mle) y x) <= length y * length x + div2 (sqrd (length x)).
   Proof with auto with arith; try omega.
     induction x; intros.
       simpl. omega.
     rename a into h, x into t.
-    rewrite foldM_cons.
+    rewrite foldlM_cons.
     rewrite bind_cost.
     deep_le_trans (insert_cost y h)...
       apply plus_le_compat...

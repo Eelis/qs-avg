@@ -44,8 +44,8 @@ Fixpoint vec_to_ne_list (A: Set) n: vector A (S n) -> ne_list.L A :=
 
 Definition nats_below_S (n: nat): ne_list.L (natBelow (S n)) := vec_to_ne_list (vec.nats 0 (S n)).
 
-Lemma blub (A: Set) n (v: vector A (S n)): ne_list.to_plain (vec_to_ne_list v) = vec.to_list v.
-Proof with reflexivity. (* todo: rename *)
+Lemma vec_to_ne_list_to_plain (A: Set) n (v: vector A (S n)): ne_list.to_plain (vec_to_ne_list v) = vec.to_list v.
+Proof with reflexivity.
   induction n; intros.
     rewrite (vec.eq_cons v).
     simpl.
@@ -59,10 +59,10 @@ Lemma nats_below_S_length n: length (nats_below_S n) = S n.
 Proof with auto.
   intros.
   unfold nats_below_S.
-  rewrite blub.
+  rewrite vec_to_ne_list_to_plain.
   apply vec.length.
 Qed.
-  
+
 (* nats *)
 
 Fixpoint nats (b: nat) (w: nat) {struct w}: list nat :=

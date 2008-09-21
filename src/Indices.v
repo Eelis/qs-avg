@@ -323,7 +323,7 @@ Section contents.
     set (length l).
     assert (n = length l)...
     clearbody n.
-    extro H. extro l.
+    revert H. revert l.
     induction n.
       intros.
       destruct l.

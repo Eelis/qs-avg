@@ -195,6 +195,17 @@ Proof with auto.
   apply perm_trans with (filter p l')...
 Qed.
 
+Lemma complementary_filter_perm (A: Set) (p: A -> bool) (l: list A):
+  Permutation l (filter p l ++ filter (negb ∘ p) l).
+Proof with auto.
+  induction l...
+  simpl.
+  unfold compose.
+  destruct (p a); simpl.
+    apply perm_skip...
+  apply Permutation_cons_app...
+Qed.
+
 Lemma filter_none (X: Set) (p: X -> bool) (l: list X): (forall x, In x l -> p x = false) <-> filter p l = nil.
 Proof with auto.
   induction l.
@@ -351,7 +362,7 @@ Proof with auto.
   destruct (d x a); simpl...
   subst.
   rewrite eq_count_0...
-Qed.  
+Qed.
 
 Lemma NoDup_incl_Permutation (A: Set) (a b: list A):
   length a = length b -> NoDup a -> incl a b -> Permutation a b.

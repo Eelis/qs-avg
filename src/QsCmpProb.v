@@ -29,7 +29,7 @@ Require QsParts.
 Require U.
 Require Import Indices.
 Require Import QsSoundCmps.
-Require Import QsCaseSplit.
+Require QsCaseSplit.
 Require Import QsCases.
 Require Import Fourier.
 Require Import Rbase.
@@ -85,7 +85,7 @@ Section contents.
     do 4 intro.
     cset (sound_cmp_expec_0 i j l).
     unfold U.qs in *.
-    extro H0.
+    revert H0.
     pattern l, (qs (U.cmp (e:=ee) (ol:=ol)) U.pick l).
     apply U.qs_ind.
       Focus 1.
@@ -116,7 +116,7 @@ Section contents.
     cset (monoid_expec_map_fst_monoid_mult (U.hom_ijcount i j)).
     simpl monoid_mult in H8.
     unfold monoid_expec in H8.
-    apply (@vec_cases2 ee ol b i j (list (Index ee ol)) (U.ijcount i j ∘ fst) n v); intros; try rewrite H8...
+    apply (@QsCaseSplit.case_split ee ol b i j (list (Index ee ol)) (U.ijcount i j ∘ fst) n v); intros; try rewrite H8...
             apply case_A with b...
             intros. apply H0 with b0... apply sound_cmp_expec_0...
           apply case_BD with b...

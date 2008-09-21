@@ -877,7 +877,7 @@ Proof with auto.
   apply natBelow_rect.
     simpl.
     intros.
-    Set Printing Coercions.
+    (*Set Printing Coercions.*)
     apply natBelow_unique.
     rewrite val_Snb.
     do 2 rewrite nb_val_eq_rec_r...
@@ -1112,6 +1112,14 @@ Section contents.
     rewrite <- eq_cons...
   Qed.
 
+  Lemma sorted_cons' x n (v: vector X n): (forall y, List.In y v -> Xle x y) -> sorted v -> sorted (Vcons x v).
+  Proof with auto.
+    induction v; intros.
+      apply sorted_one.
+    apply sorted_more...
+    apply H. left...
+  Qed.
+
   Lemma sorted_cons_inv x n (v: vector X (S n)): sorted (Vcons x v) -> Xle x (head v).
   Proof. intros. rewrite (eq_cons v) in H. inversion_clear H. assumption. Qed.
 
@@ -1132,7 +1140,7 @@ Section contents.
       inversion_clear H...
     apply IHxs...
     clear IHxs H1.
-    extro H.
+    revert H.
     dependent inversion_clear xs.
       simpl.
       intros.
@@ -1143,6 +1151,30 @@ Section contents.
         apply (sorted_cons_inv H).
       apply (sorted_cons_inv (sorted_tail H)).
     apply (sorted_tail (sorted_tail H)).
+  Qed.
+
+  Lemma sorted_app (v w: List.list X): sorted v -> sorted w ->
+    (forall x y, List.In x v -> List.In y w -> Xle x y) -> sorted (List.app v w).
+  Proof with auto.
+    induction v...
+    intros.
+    simpl.
+    apply sorted_cons'.
+      intros.
+      clear IHv.
+      rewrite list_round_trip in H2.
+      destruct (List.in_app_or v w y H2).
+        simpl in H.
+        apply (sorted_cons_inv' H).
+        rewrite list_round_trip...
+      apply H1...
+      left...
+    apply IHv...
+      simpl in H.
+      apply sorted_tail with a...
+    intros.
+    apply H1...
+    simpl...
   Qed.
 
   Lemma sorted_le_indices_le_values n (v: vector X n): sorted v ->
@@ -1242,7 +1274,7 @@ Section contents.
       apply sorted_more...
     cset (IHv (sorted_tail H)). clear IHv.
     cset (eq_cons v).
-    extro H1.
+    revert H1.
     generalize (head v).
     generalize (tail v).
     intros.

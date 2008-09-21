@@ -6,34 +6,23 @@ Require Import Plus.
 Require Import Minus.
 Require Import Lt.
 Require Import Arith.
-Require Import Recdef.
-Require Import Bool_nat.
 Require Import Bvector.
 Require Import ArithLems.
 Require Import List.
 Require Import Monads.
-Require Import Bool.
-Require Import Compare_dec.
-Require Import EqNat.
-Require Import Relation_Definitions.
 Require FixMeasureSubLems.
 Require Import MonoidMonadTrans.
 Require Import Expec.
-Require Import MonoidExpec.
 Require Import nats_below.
 Require Import ListUtils.
 Require Import sums_and_averages.
 Require Quicksort.
-Require QsParts.
 Require U.
 Require Import Indices.
-Require Import QsSoundCmps.
-Require Import Fourier.
 Require Import Rbase.
 Require Import SortOrder.
 Require Import NatBelow.
 Require vec.
- (* todo: way too many imports here *)
 
 Section contents.
 
@@ -49,20 +38,6 @@ Section contents.
     omega.
   Qed.
 
-  Lemma ne_list_plain_vec_bla_bla (X: Set) n (v: vector X (S n)):
-    ne_list.to_plain (vec_to_ne_list v) = vec.to_list v.
-  Proof with auto.
-    induction n.
-      intros.
-      rewrite (vec.eq_cons v).
-      simpl.
-      rewrite (vec.eq_nil (vec.tail v))...
-    intros.
-    rewrite (vec.eq_cons v).
-    simpl.
-    rewrite IHn...
-  Qed. (* todo: move, rename *)
-
   Lemma vec_cons_eq_inv X (a c: X) n (b d: vector X n): Vcons a b = Vcons c d -> a = c /\ b =d.
   Proof with auto.
     intros.
@@ -70,8 +45,7 @@ Section contents.
     rewrite H...
   Qed.
 
-
-  Lemma vec_cases2 b: forall i j (X: Set) (f: U.monoid * X -> nat) n (vex: vector (Index ee ol) (S n)) (g: natBelow (S n) -> MonoidMonadTrans.M U.monoid NeTreeMonad.ext X), IndexSeq b vex -> (b <= i)%nat -> (i < j)%nat -> (j < b + S n)%nat -> forall ca cb, 0 <= ca -> 0 <= cb ->
+  Lemma case_split b: forall i j (X: Set) (f: U.monoid * X -> nat) n (vex: vector (Index ee ol) (S n)) (g: natBelow (S n) -> MonoidMonadTrans.M U.monoid NeTreeMonad.ext X), IndexSeq b vex -> (b <= i)%nat -> (i < j)%nat -> (j < b + S n)%nat -> forall ca cb, 0 <= ca -> 0 <= cb ->
     (forall pi, (vec.nth vex pi < i)%nat -> expec f (g pi) <= ca) ->
     (forall pi, (nb_val (vec.nth vex pi) = i)%nat -> expec f (g pi) <= cb) ->
     (forall pi, (i < vec.nth vex pi)%nat ->
@@ -80,7 +54,7 @@ Section contents.
     (forall pi, (j < vec.nth vex pi)%nat -> expec f (g pi) <= ca) ->
       Rsum (map (expec f ∘ g) (nats_below_S n))
         <= ca * INR (i - b) + (cb + (0 + (cb + (ca * INR(b + n - j))))).
-  Proof with auto with real. (* todo: rename *)
+  Proof with auto with real.
     intros.
     set (H10 := 3).
     destruct (vec.Permutation_mapping (vec.perm_sym (vec_IndexSeq_nats_perm vex H))).
@@ -93,7 +67,7 @@ Section contents.
       apply Permutation_sym.
       apply Permutation_map.
       unfold nats_below_S.
-      rewrite ne_list_plain_vec_bla_bla.
+      rewrite vec_to_ne_list_to_plain.
       apply NoDup_incl_Permutation.
           do 2 rewrite vec.length...
           apply (vec.NoDup_nats (S n) 0).

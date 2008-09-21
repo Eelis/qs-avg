@@ -123,7 +123,7 @@ Section contents.
       monoid_expec (f >>= g) = monoid_expec f + monoid_expec (g (snd (ne_tree.head f))).
   Proof with auto with real.
     intros A B f g.
-    extro f.
+    revert f.
     induction f.
         rewrite (@monoid_expec_bind_det _ n)...
         unfold NeTreeMonad.deterministic...
