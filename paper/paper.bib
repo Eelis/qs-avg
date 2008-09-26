@@ -29,10 +29,10 @@
 @book{Barendregt84,
   author  = {H. P. Barendregt},
   title   = {{The Lambda Calculus -- Its Syntax and Semantics}},
-  publisher = {North-Holland},
+  publisher = nh,
   year    = 1984,
   volume  = {103},
-  series  = {Studies in Logic and the Foundations of Mathematics},
+  series  = nhseries,
   topics  = {FP - Lambda Calculi}
 }
 
@@ -45,12 +45,12 @@
 }
 
 @Book{coq'art,
-  author        = "Y. Bertot and P. Cast\'eran",
-  title                = "Interactive Theorem Proving and Program Development. Coq'Art: The Calculus of Inductive Constructions",
-  publisher        = "Springer",
-  year                = {2004},
-  series        = "Texts in Theoretical Computer Science.",
-  isbn                = {3-540-20854-2}
+  author    = "Y. Bertot and P. Cast\'eran",
+  title     = "Interactive Theorem Proving and Program Development. Coq'Art: The Calculus of Inductive Constructions",
+  publisher = sv,
+  year      = {2004},
+  series    = "Texts in Theoretical Computer Science.",
+  isbn      = {3-540-20854-2}
 }
 
 @book{nielson,
@@ -66,13 +66,13 @@
   title =    {Intuitionistic Type Theory},
   publisher =    {Bibliopolis},
   year =   {1984},
-  series =   {Studies in Proof Theory}
+  OPTseries =   {Studies in Proof Theory}
 }
 
 @inbook{howard,
   author = "W.A. Howard",
   title = "The formulae-as-types notion of constructions",
-  series = "to H.B. Curry: Essays on Combinatory Logic, Lambda Calculus and Formalism.",
+  series = "To H.B. Curry: Essays on Combinatory Logic, Lambda Calculus and Formalism.",
   editor = "J.P. Seldin and J.R. Hindley",
   pages = {479-490},
   year = 1980
@@ -81,7 +81,7 @@
 @BOOK{Girard,
  Author = "J.-Y. Girard and Y. Lafont and P. Taylor",
  Title = "Proofs and Types",
- Publisher = "Cambridge University Press",
+ Publisher = cup,
  Year = 1989,
  Series = "Cambridge Tracts in Theoretical Computer Science",
  Volume = 7,
@@ -95,15 +95,15 @@
   year = {1995},
   isbn = {3-540-60178-3},
   pages = {131--144},
-  publisher = {Springer},
-  address = {London, UK},
+  publisher = sv,
+  OPTaddress = {London, UK},
 }
 
 @inproceedings{wadler93monads,
     author = "P. Wadler",
     title = "Monads for functional programming",
     booktitle = "Program Design Calculi: Proceedings of the 1992 {M}arktoberdorf International Summer School",
-    publisher = "Springer",
+    publisher = sv,
     editor = "M.~Broy",
     year = "1993",
     url = "citeseer.ist.psu.edu/wadler95monads.html"
@@ -120,7 +120,7 @@
 }
 
 @article{ moggi91notions,
-    author = "Eugenio Moggi",
+    author = "E. Moggi",
     title = "Notions of Computation and Monads",
     journal = "Information and Computation",
     volume = "93",
@@ -130,7 +130,7 @@
     url = "citeseer.ist.psu.edu/moggi89notions.html" }
 
 @inproceedings{ jones95functional,
-    author = "Mark P. Jones",
+    author = "M. P. Jones",
     title = "Functional Programming with Overloading and Higher-Order Polymorphism",
     booktitle = "Advanced Functional Programming",
     pages = "97-136",
@@ -138,54 +138,54 @@
     url = "citeseer.ist.psu.edu/jones95functional.html" }
 
 @incollection{subsetcoercions,
-  author = {Sozeau, Matthieu  },
+  author = {M. Sozeau},
   booktitle = {Types for Proofs and Programs},
   citeulike-article-id = {2443518},
   doi = {10.1007/978-3-540-74464-1\_16},
-  editor = {Altenkirch, Thorsten   and {Mcbride}, Conor  },
+  editor = {T. Altenkirch   and C. {McBride}  },
   journal = {Types for Proofs and Programs},
   keywords = {coq, dependent-types, functional-programming, theorem-proving, type-theory},
   pages = {237--252},
   priority = {4},
-  publisher = {Springer},
-  series = {LNCS},
+  publisher = sv,
+  series = lncs,
   title = {Subset Coercions in {Coq}},
   url = {http://dx.doi.org/10.1007\%2F978-3-540-74464-1\_16},
   year = {2007}
 }
 
-@INPROCEEDINGS{subtyping,
-    AUTHOR = {Natarajan Shankar and Sam Owre},
-    TITLE = {Principles and Pragmatics of Subtyping in {PVS}},
-    VOLUME = {1827},
-    YEAR = {1999},
-    PAGES = {37--52},
-    MONTH = {sep},
-    URL = {http://www.csl.sri.com/papers/wadt99/},
-    SERIES = {LNCS},
-    BOOKTITLE = {Recent Trends in Algebraic Development Techniques, {WADT} '99},
-    PUBLISHER = {Springer},
-    EDITOR = {{D.} Bert and {C.} Choppy and {P.} {D.} Mosses}
+@inproceedings{subtyping,
+    author = {N. Shankar and S. Owre},
+    title = {Principles and Pragmatics of Subtyping in {PVS}},
+    volume = {1827},
+    year = {1999},
+    pages = {37--52},
+    OPTmonth = {sep},
+    url = {http://www.csl.sri.com/papers/wadt99/},
+    series = lncs,
+    booktitle = {Recent Trends in Algebraic Development Techniques, {WADT} '99},
+    publisher = sv,
+    editor = {{D.} Bert and {C.} Choppy and {P.} {D.} Mosses}
 }
 
 @inproceedings{monadtrans,
-  author = {Sheng Liang and Paul Hudak and Mark Jones},
+  author = {S. Liang and P. Hudak and M. P. Jones},
   title = {Monad transformers and modular interpreters},
   booktitle = {POPL '95: Proceedings of the 22nd ACM SIGPLAN-SIGACT symposium on Principles of programming languages},
   year = {1995},
   isbn = {0-89791-692-1},
   pages = {333--343},
   doi = {http://doi.acm.org/10.1145/199448.199528},
-  publisher = {ACM}
+  publisher = acm
 }
 
 @book{introtoalgos,
-  author = {Cormen, Thomas  H.  and Leiserson, Charles  E.  and Rivest, Ronald  L.  and Stein, Clifford  },
+  author = {T.H. Cormen  and C.E. Leiserson  and R.L. Rivest  and C. Stein},
   howpublished = {Paperback},
   isbn = {0262531968},
   keywords = {algorithms, hma},
   month = {September},
-  publisher = {The MIT Press},
+  publisher = mitlong,
   title = {Introduction to Algorithms, Second Edition},
   year = {2001}
 }
