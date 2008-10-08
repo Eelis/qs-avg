@@ -1,13 +1,14 @@
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import List.
-Require Import Monads.
+Require Import monads.
 Require Import sums_and_averages.
 Require Import Setoid.
 Require ne_tree.
-Require ArithLems.
+Require arith_lems.
 Require Import Rbase.
+Require ne_tree_monad.
 
 Open Scope R_scope.
 
@@ -15,7 +16,7 @@ Definition expec (T: Set) (f: T -> nat): ne_tree.T T -> R :=
   TRavg ∘ ne_tree.map (INR ∘ f).
     (* note: currently specialized for discrete measures (hence the nat and INR) *)
 
-Definition expec_sum (T U: Set) (f: U -> nat) (g: T -> NeTreeMonad.M U): list T -> R :=
+Definition expec_sum (T U: Set) (f: U -> nat) (g: T -> ne_tree_monad.M U): list T -> R :=
   Rsum ∘ map (expec f ∘ g).
 
 Section expec_ctors.
@@ -131,7 +132,7 @@ Lemma expec_map (T U: Set) (g: T -> U) (f: U -> nat) (t: ne_tree.T T):
   expec f (ne_tree.map g t) = expec (f ∘ g) t.
 Proof. intros. unfold expec. repeat rewrite comp_apply. rewrite ne_tree.map_map. reflexivity. Qed.
 
-Lemma expec_nonneg (T: Set) (m: NeTreeMonad.M T) (f: T -> nat): 0 <= expec f m.
+Lemma expec_nonneg (T: Set) (m: ne_tree_monad.M T) (f: T -> nat): 0 <= expec f m.
 Proof with auto with real.
   induction m; intros.
       rewrite expec_Leaf...
@@ -169,7 +170,7 @@ Proof with auto with real.
       simpl.
       intros.
       inversion_clear H0.
-      apply ArithLems.INR_0_inv...
+      apply arith_lems.INR_0_inv...
     simpl.
     rewrite expec_Node_one.
     intros.
@@ -178,14 +179,25 @@ Proof with auto with real.
   rewrite expec_Node_cons.
   intros.
   inversion_clear H0.
-  destruct (ArithLems.honing (length l) H)...
-    destruct l.
-      simpl...
-    simpl length...
-  inversion_clear H1...
+  destruct (arith_lems.Rmult_0_inv H).
+    assert (expec f t = 0).
+      apply Rplus_eq_0_l with (expec f (ne_tree.Node l) * INR (length l))...
+      apply Rmult_le_pos...
+    assert (expec f (ne_tree.Node l) = 0).
+      rewrite Rplus_comm in H0.
+      cut (expec f (ne_tree.Node l) * INR (length l) = 0).
+        intro.
+        destruct (arith_lems.Rmult_0_inv H3)...
+        cset (arith_lems.INR_0_inv _ H4).
+        destruct l; discriminate.
+      apply Rplus_eq_0_l with (expec f t)...
+      apply Rmult_le_pos...
+    inversion_clear H1...
+  elimtype False.
+  apply (Rinv_neq_0_compat (INR (S (length l))))...
 Qed.
 
-Lemma expec_constant (T: Set) (f: T -> nat) (c: nat) (t: NeTreeMonad.M T):
+Lemma expec_constant (T: Set) (f: T -> nat) (c: nat) (t: ne_tree_monad.M T):
    (forall x, ne_tree.In x t -> f x = c) -> expec f t = INR c.
 Proof with auto with real.
   induction t.
@@ -208,8 +220,8 @@ Section bind_expecs.
 
   Variables (T U: Set) (f: T -> nat).
 
-  Lemma expec_bind_leaf (g: U -> T) (m: NeTreeMonad.M U):
-    expec f (m >>= (NeTreeMonad.ret ∘ g)) = expec (f ∘ g) m.
+  Lemma expec_bind_leaf (g: U -> T) (m: ne_tree_monad.M U):
+    expec f (m >>= (ne_tree_monad.ret ∘ g)) = expec (f ∘ g) m.
   Proof with auto.
     induction m...
       simpl in *.
@@ -221,9 +233,9 @@ Section bind_expecs.
     repeat rewrite ne_list.map_length...
   Qed.
 
-  Lemma expec_bind_cons (x: NeTreeMonad.M U) t (g: U -> NeTreeMonad.M T):
-    expec f (@bind NeTreeMonad.M _ _  (ne_tree.Node (ne_list.cons x t)) g) =
-    (expec f (x >>= g) + expec f (@bind NeTreeMonad.M _ _ (ne_tree.Node t) g) * INR (length t)) * / INR (S (length t)).
+  Lemma expec_bind_cons (x: ne_tree_monad.M U) t (g: U -> ne_tree_monad.M T):
+    expec f (@bind ne_tree_monad.M _ _  (ne_tree.Node (ne_list.cons x t)) g) =
+    (expec f (x >>= g) + expec f (@bind ne_tree_monad.M _ _ (ne_tree.Node t) g) * INR (length t)) * / INR (S (length t)).
   Proof.
     intros.
     simpl expec.

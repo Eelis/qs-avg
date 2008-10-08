@@ -2,13 +2,13 @@ Set Implicit Arguments.
 
 Require Import sums_and_averages.
 Require Import Reals.
-Require Import nats_below.
-Require Import ArithLems.
+Require Import nat_seqs.
+Require Import arith_lems.
 Require Import List.
-Require Import Util.
+Require Import util.
 Require Import Fourier.
-Require Import ListUtils.
-Require Import NatBelow.
+Require Import list_utils.
+Require Import nat_below.
 
 Lemma harmonic_upper_bound n: RsumOver (nats 1 n) (Rinv ∘ INR) <= INR (S (log2ceil n)).
 Proof with auto with real.
@@ -37,7 +37,7 @@ Proof with auto with real.
     apply Rmult_1_r.
   apply RsumOver_constant_le.
   intros.
-  rewrite RsumOver_nats_natsBelow.
+  rewrite RsumOver_nats.
   apply Rle_eq_trans with (RsumOver (nats 0 (pow 2 x)) (fun _ => / INR (pow 2 x))).
     apply RsumOver_le.
     intros.
@@ -66,20 +66,20 @@ Proof with auto with real.
   destruct H1...
 Qed.
 
-Require Import Indices.
+Require Import indices.
 
 Definition ijs (n: nat): list (nat * nat) :=
-  concat (map (fun j => map (fun i => (i, j)) (natsBelow j)) (natsBelow n)).
+  concat (map (fun j => map (fun i => (i, j)) (nats 0 j)) (nats 0 n)).
 
 Lemma In_ijs n i j: lt i j -> lt j n -> List.In (i, j) (ijs n).
-Proof with auto.
+Proof with auto with arith.
   unfold ijs.
   intros.
-  apply In_concat with (map (fun x: nat => (x, j)) (natsBelow j)).
+  apply In_concat with (map (fun x: nat => (x, j)) (nats 0 j)).
     apply (in_map (fun i: nat => (i, j))).
-    apply In_natsBelow...
-  apply (in_map (fun j0: nat => map (fun i0: nat => (i0, j0)) (natsBelow j0))).
-  apply In_natsBelow...
+    apply In_nats...
+  apply (in_map (fun j0: nat => map (fun i0: nat => (i0, j0)) (nats 0 j0))).
+  apply In_nats...
 Qed.
 
 Lemma In_ijs_inv n i j: List.In (i, j) (ijs n) -> (i < j < n)%nat.
@@ -96,18 +96,20 @@ Proof with auto.
   destruct H0.
   inversion H.
   subst.
-  split; apply In_natsBelow_inv...
+  split.
+    destruct (In_nats_inv _ _ _ H0)...
+  destruct (In_nats_inv _ _ _ H1)...
 Qed.
 
 Lemma expand_sumOver_ijs n (f: nat * nat -> R):
   RsumOver (ijs n) f =
-  RsumOver (natsBelow n) (fun j => RsumOver (natsBelow j) (fun i => f (i, j))).
+  RsumOver (nats 0 n) (fun j => RsumOver (nats 0 j) (fun i => f (i, j))).
 Proof with auto with real.
   unfold ijs.
   intros.
   rewrite RsumOver_concat_map.
   unfold RsumOver.
-  rewrite (map_ext (fun j => RsumOver (map (fun i => (i, j)) (natsBelow j)) f) (fun j => RsumOver (natsBelow j) (fun i => f (i, j))))...
+  rewrite (map_ext (fun j => RsumOver (map (fun i => (i, j)) (nats 0 j)) f) (fun j => RsumOver (nats 0 j) (fun i => f (i, j))))...
   intro.
   unfold RsumOver.
   rewrite map_map...
@@ -120,10 +122,9 @@ Proof with auto with real.
   rewrite expand_sumOver_ijs.
   simpl snd.
   simpl fst.
-  apply Rle_trans with (RsumOver (natsBelow n) (fun _ => 2 * INR (S (log2ceil n)))).
+  apply Rle_trans with (RsumOver (nats 0 n) (fun _ => 2 * INR (S (log2ceil n)))).
     apply RsumOver_le.
     intros.
-    unfold natsBelow.
     fold (compose (fun i => 2 / INR (S i)) (minus x)).
     rewrite RsumOver_minus...
     rewrite plus_0_r.
@@ -151,9 +152,8 @@ Proof with auto with real.
   rewrite <- RsumOver_mult_constant.
   rewrite Rmult_assoc.
   unfold RsumOver.
-  rewrite Rsum_constant with (INR (S (log2ceil n))) (map (fun _ => INR (S (log2ceil n))) (natsBelow n)).
+  rewrite Rsum_constant with (INR (S (log2ceil n))) (map (fun _ => INR (S (log2ceil n))) (nats 0 n)).
     rewrite map_length.
-    unfold natsBelow.
     rewrite nats_length...
   intros.
   destruct (In_map_inv H).
@@ -166,20 +166,20 @@ Require Import Plus.
 Require Import Minus.
 Require Import Lt.
 Require Import Arith.
-Require Import Monads.
-Require Import MonoidMonadTrans.
-Require Import Expec.
-Require Import MonoidExpec.
-Require ListLengthExpec.
-Require Quicksort.
-Require QsParts.
-Require QsSoundCmps.
+Require Import monads.
+Require Import monoid_monad_trans.
+Require Import expec.
+Require Import monoid_expec.
+Require list_length_expec.
+Require qs_definitions.
+Require qs_parts.
+Require qs_sound_cmps.
 Require Import Rbase.
-Require QsCmpProb.
+Require qs_cmp_prob.
 Require qs_CM_U_expec_cost_eq.
-Require Import SortOrder.
+Require Import sort_order.
 
-Import Quicksort.mon_nondet.
+Import qs_definitions.mon_nondet.
 
 Implicit Arguments length [[A]].
 
@@ -197,17 +197,17 @@ Section contents.
       apply IndexSeq_NoDup with 0%nat...
     unfold monoid_expec.
     rewrite <- (expec_map (@fst U.monoid (list (Index ee ol))) length).
-    apply (ListLengthExpec.exp_list_sum_le U.UcmpDec).
+    apply (list_length_expec.exp_list_sum_le U.UcmpDec).
       intros.
       rewrite expec_map.
       destruct i.
       simpl expec.
       simpl snd.
       simpl @fst.
-      cset QsCmpProb.qs_comp_prob.
+      cset qs_cmp_prob.qs_comp_prob.
       unfold monoid_expec in H2.
       unfold U.ijcount in H2.
-      unfold ListLengthExpec.beq_X.
+      unfold list_length_expec.beq_X.
       unfold U.UcmpCmp in H2.
       destruct (In_ijs_inv _ _ _ H1).
       assert (lt n (length l)).
@@ -234,9 +234,9 @@ Section contents.
     apply count_0.
     intros.
     destruct x0.
-    destruct (QsSoundCmps.qs_sound_cmps_2 l H2 n n0 H3).
-    cset (QsSoundCmps.qs_sound_cmps H2 H0 n n0 H3).
-    unfold ListLengthExpec.beq_X.
+    destruct (qs_sound_cmps.qs_sound_cmps_2 l H2 n n0 H3).
+    cset (qs_sound_cmps.qs_sound_cmps H2 H0 n n0 H3).
+    unfold list_length_expec.beq_X.
     destruct (U.UcmpDec i (n, n0))...
     elimtype False.
     apply H1. clear H1.

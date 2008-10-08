@@ -6,15 +6,15 @@ Require Import List.
 Require Import Le.
 Require Import Lt.
 Require Import Arith.
-Require Import Util.
-Require Import ArithLems.
+Require Import util.
+Require Import arith_lems.
 Require Import List.
-Require Import Monads.
-Require Import Measured.
-Require Import MonoidMonadTrans.
-Require Import Quicksort.
-
+Require Import monads.
+Require Import monoid_monad_trans.
+Require Import qs_definitions.
 Import mon_det.
+Require fix_measure_utils.
+
 
 Variables (T: Set) (cmp: T -> T -> bool). (* "le" *)
 
@@ -71,37 +71,6 @@ Proof with auto with arith.
   rewrite plus_comm in l0.
   apply le_trans with (sqrd (n0 + n3))...
 Qed.
-(*
-Theorem qs_quadratic (l: list T): duration (qs counted_cmp l) <= sqrd (length l).
-Proof with auto with arith.
-  intros.
-  set (P := fun (l: list T) (r: CM (list T)) => duration r <= sqrd (length l)).
-  cut (P l (qs counted_cmp l))...
-  unfold qs.
-  apply wf_ind_ind.
-  subst P.
-  intros.
-  destruct x.
-    compute...
-  repeat rewrite bind_duration.
-  repeat rewrite filter_duration...
-  rewrite return_duration.
-  cset (exclusive_filtering (counted_cmp t) (gt _ counted_cmp t) (counted_cmp_excl t) x).
-  destruct (filter CM (counted_cmp t) x).
-  destruct (filter CM (gt _ counted_cmp t) x).
-  destruct s0.
-  destruct s.
-  simpl in *.
-  cset (gt_le_S (length x1) (S (length x)) (le_lt_n_Sm (length x1) (length x) l1)).
-  cset (gt_le_S (length x0) (S (length x)) (le_lt_n_Sm (length x0) (length x) l0)).
-  deep_le_trans (H x1 H1)...
-  deep_le_trans (H x0 H2)...
-  rewrite sqrd_S.
-  autorewrite with arith_norm.
-  apply common_arith with (length x1) (length x0)...
-Qed.
-*)
-Require FixMeasureSubLems.
 
 Lemma bind_eqq (M: Monad) (e: extMonad M) (A B: Set) (m n: M A) (f g: A -> M B): m = n -> ext_eq f g -> (m >>= f) = (n >>= g).
 Proof.
@@ -111,7 +80,7 @@ Proof.
   assumption.
 Qed.
 
-Hint Resolve CMext.
+Hint Resolve SimplyProfiled_ext.
 
 Definition qs_body (l: list T) (qs0: {l': list T | length l' < length l} -> SimplyProfiled (list T)) :=
   match l as l1 return (l1 = l -> SimplyProfiled (list T)) with
@@ -133,26 +102,14 @@ Proof with auto with arith.
   cut (P l (qs counted_cmp l))...
   unfold qs.
   fold qs_body.
-  apply FixMeasureSubLems.recti2.
-    subst P.
-    intros.
+  apply fix_measure_utils.rect; subst P; intros.
     unfold qs_body.
     destruct x0...
-    apply bind_eqq...
-      apply bind_eqq...
-      intro...
-    intro.
-    apply bind_eqq...
-      apply bind_eqq...
-      intro...
-    intro...
-  subst P.
-  intros.
+    repeat (try apply bind_eqq; try intro; auto).
   simpl.
   unfold qs_body.
   simpl proj1_sig.
-  destruct x.
-    simpl...
+  destruct x...
   repeat rewrite bind_cost.
   repeat rewrite return_cost.
   repeat rewrite filter_cost...
@@ -161,8 +118,8 @@ Proof with auto with arith.
   destruct (result (filter SimplyProfiled (gt SimplyProfiled counted_cmp t) x)).
   destruct (result (filter SimplyProfiled (counted_cmp t) x)).
   simpl proj1_sig in *.
-  assert (MR lt (fun l: list T => length l) x0 (t :: x)). unfold MR. simpl...
-  assert (MR lt (fun l: list T => length l) x1 (t :: x)). unfold MR. simpl...
+  assert (fix_measure_utils.MR lt (fun l: list T => length l) x0 (t :: x)). unfold fix_measure_utils.MR. simpl...
+  assert (fix_measure_utils.MR lt (fun l: list T => length l) x1 (t :: x)). unfold fix_measure_utils.MR. simpl...
   unfold SimplyProfiled in H.
   simpl mon in H.
   deep_le_trans (H x0 H1)...

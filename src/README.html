@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en'>
+  <head>
+    <meta http-equiv='Keywords' content='Quicksort, Coq, complexity, average, type theory, formalized mathematics, monads'/>
+    <title>Readme</title>
+  </head>
+  <body>
+    <h1>Readme</h1>
+
+    <hr/><h2>1. Prerequisites</h2>
+
+    <ul>
+      <li><a href='http://coq.inria.fr/'>Coq</a> &ge; 8.2beta2</li>
+      <li><a href='http://www.scons.org/'>SCons</a> &ge; 0.98 (SCons is a modern make-replacement based on Python)</li>
+    </ul>
+
+    <hr/><h2>2. Compilation</h2>
+
+    <p>Simply invoking "<kbd>scons</kbd>" in the current directory should compile the entire development.</p>
+
+    <hr/><h2>3. Source code organization</h2>
+
+    <p>A dependency graph for the source files can be found <a href='dep_graph.png'>here</a>.</p>
+
+    <p>We briefly summarize the contents of each source file, ordered roughly by increasing interestingness:</p>
+
+    <ul>
+      <li><b>util.v</b>: a small collection of very generic utilities.</li>
+      <li><b>list_utils.v</b>: lots of lemmas for and operations on lists.</li>
+      <li><b>arith_lems.v</b>: miscellaneous arithmetic lemmas, including several about nat division by two and discrete binary logarithms.</li>
+      <li><b>skip_list.v</b>: defines the binary relation stating that one list is equal to another list modulo some missing elements.</li>
+      <li><b>ne_list.v</b>: defines a data type representing non-empty lists.</li>
+      <li><b>ne_tree.v</b>: defines a data type representing arbitrary-branching non-empty trees.</li>
+      <li><b>vec.v</b>: lots of lemmas for and operations on vectors (defined in the standard library module Bvector).</li>
+      <li><b>nat_below.v</b>: defines a data type representing bounded natural numbers.</li>
+      <li><b>nat_seqs.v</b>: defines functions producing contiguous sequences of natural numbers and associated lemmas.</li>
+      <li><b>sums_and_averages.v</b>: defines functions computing sums and averages of lists and associated lemmas.</li>
+      <li><b>sort_order.v</b>: describes orders that are three-way (&lt;/=/>) decideable.</li>
+      <li><b>fix_measure_utils.v</b>: contains utilities to reason about functions defined using "Program Fixpoint".</li>
+      <li><b>monads.v</b>: defines the monad record and some basic monadic functions.</li>
+      <li><b>monoid_monad_trans.v</b>: defines the monoid monad transformer (MMT).</li>
+      <li><b>insertion_sort.v</b>: contains a definition of insertion sort, along with correctness and worst-case complexity proof.</li>
+      <li><b>qs_definitions.v</b>: defines several Quicksort variants.</li>
+      <li><b>qs_correct.v</b>: contains equivalence and correctness proofs for the Quicksort definitions.</li>
+      <li><b>qs_worst.v</b>: proves Quicksort's quadratic worst-case complexity.</li>
+      <li><b>ne_tree_monad.v</b>: defines the monad instance for the non-empty tree data type.</li>
+      <li><b>monoid_tree_monad.v</b>: lifts a nondeterministic pick operation into monoid-transformed tree monads.</li>
+      <li><b>qs_parts.v</b>: contains a number of decomposition lemmas to ease induction proofs over Quicksort's recursive call structure.</li>
+      <li><b>expec.v</b>: defines the notion of expectation for nondeterministic programs (expressed monadically), along with various lemmas.</li>
+      <li><b>monoid_expec.v</b>: defines a specialized notion of expectation for programs expressed in a monoid-transformed tree monad.</li>
+      <li><b>NDP.v</b>: transforms the ne_tree monad using the additive monoid on natural numbers, yielding a monoid suitable for nondeterministic profiling.</li>
+      <li><b>U.v</b>: defines yet another monad, specialized for the average-case complexity proof.</li>
+      <li><b>qs_CM_U_expec_cost_eq.v</b>: proves that the costs measured by NDP and U are equal.</li>
+      <li><b>list_length_expec.v</b>: proves a lemma stating that the expected length of a list can be expressed as a sum of expected element frequencies.</li>
+      <li><b>indices.v</b>: contains a number of lemmas relating ordered, permuted, and indexed lists.</li>
+      <li><b>qs_sound_cmps.v</b>: proves a lemma stating that Quicksort only compares elements from the input list.</li>
+      <li><b>qs_case_split.v</b>: proves a lemma expressing what amounts to a case distinction on pivot selection.</li>
+      <li><b>qs_cases.v</b>: proves bounds for the expected comparison counts for the different cases.</li>
+      <li><b>qs_cmp_prob.v</b>: proves the bound on the expected comparison count between two arbitrary input elements.</li>
+      <li><b>qs_avg_complexity.v</b>: proves the average case complexity of Quicksort (the main result).</li>
+    </ul>
+  </body>
+</html>

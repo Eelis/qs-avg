@@ -9,16 +9,16 @@ Require Import Ring.
 Require Import Plus.
 Require Import Mult.
 Require Import Compare_dec.
-Require Import MonoidMonadTrans.
+Require Import monoid_monad_trans.
 Require Import Le.
 Require Import Div2.
 Require Import Arith.
 Require Import Wf_nat.
-Require Import Monads.
+Require Import monads.
 Require Import Arith.
 Require Import Omega.
-Require Import ArithLems.
-Require Import ListUtils.
+Require Import arith_lems.
+Require Import list_utils.
 
 Definition numbers := 3 :: 2 :: 5 :: 9 :: 7 :: 6 :: 1 :: 0 :: 4 :: 8 :: nil.
 

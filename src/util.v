@@ -82,8 +82,6 @@ Proof. intros. apply H. Qed.
 
 (* function composition *)
 
-(*Definition compose A B C (g : B -> C) (f : A -> B) := fun x : A => g (f x).*)
-
 Hint Unfold compose.
 
 Notation " g ∘ f " := (compose g f) (at level 40, left associativity).
@@ -110,3 +108,8 @@ Proof.
   rewrite H.
   reflexivity.
 Qed.
+
+Definition map_snd (A B: Set) (f: A -> B) (C: Set) (p: C * A): C * B := (fst p, f (snd p)).
+
+Lemma fst_map_snd (A B: Set) (f: A -> B) (C: Set) (p: C * A): fst (map_snd f p) = fst p.
+Proof. destruct p. auto. Qed.

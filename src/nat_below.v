@@ -43,12 +43,10 @@ Proof with auto.
 Qed.
 
 Inductive natBelow: nat -> Set := mkNatBelow (v p: nat): natBelow (S (v + p)).
-  (* i used to use
-        Definition natBelow (n: nat): Set := sig (fun x => x < n).
-  but that meant i had to use sigma projection all the time, especially when stating equality, which was _very_ annoying *)
 
-Definition nb_val {n: nat} (nb: natBelow n): nat :=
-  match nb with mkNatBelow m _ => m end.
+Definition nb_val {n: nat} (nb: natBelow n): nat := match nb with mkNatBelow m _ => m end.
+
+Coercion nb_val: natBelow >-> nat.
 
 Lemma natBelow_unique n (x y: natBelow n): nb_val x = nb_val y -> x = y.
 Proof with auto.
@@ -69,8 +67,6 @@ Qed.
 
 Lemma natBelow_uneq n (x y: natBelow n): nb_val x <> nb_val y -> x <> y.
 Proof. intros. intro. subst. auto. Qed.
-
-Coercion nb_val: natBelow >-> nat.
 
 Lemma natBelow_eq_dec n (x y: natBelow n): { x = y } + { x <> y }.
 Proof with auto.

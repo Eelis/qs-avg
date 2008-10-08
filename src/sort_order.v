@@ -3,7 +3,7 @@
 
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Plus.
 Require Import Minus.
@@ -12,17 +12,14 @@ Require Import Arith.
 Require Import Recdef.
 Require Import Bool_nat.
 Require Import List.
-(*Require Import Wf.
-Require Import Wf_nat.*)
-Require Import ListUtils.
+Require Import list_utils.
 Require Import Omega.
 Require Import Arith.
 Require Import Bool.
 Require Import EqNat.
-Require Import nats_below.
 Require Import Relations.
 
-Section E.
+Section contents.
 
 Record E: Type :=
   { Ec:> Set
@@ -165,6 +162,6 @@ Proof with intro; discriminate.
   simpl...
 Qed.
 
-End E.
+End contents.
 
 (* todo: figure out the minimal decision procedures required to turn a preorder into an E *)

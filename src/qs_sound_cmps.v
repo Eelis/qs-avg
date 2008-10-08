@@ -1,32 +1,31 @@
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Plus.
 Require Import Lt.
 Require Import List.
-Require Import Monads.
-Require FixMeasureSubLems.
-Require Import MonoidMonadTrans.
-Require Import nats_below.
+Require Import monads.
+Require Import monoid_monad_trans.
+Require Import nat_seqs.
 Require Import Compare_dec.
-Require Quicksort.
-Require QsParts.
+Require qs_definitions.
+Require qs_parts.
 Require U.
-Require Import Expec.
-Require Import ArithLems.
-Require Import ListUtils.
-Require Import Indices.
-Require Import SortOrder.
-Require Import NatBelow.
-Require Import SkipList.
+Require Import expec.
+Require Import arith_lems.
+Require Import list_utils.
+Require Import indices.
+Require Import sort_order.
+Require Import nat_below.
+Require Import skip_list.
 Require Import Bvector.
 
 Section contents.
 
   Variables (ee: E) (ol: list ee).
 
-  Import Quicksort.mon_nondet.
+  Import qs_definitions.mon_nondet.
 
   Lemma NeTree_In_Node_inv (A: Set) (r: A) (l: ne_list.L (ne_tree.T A)):
     ne_tree.In r (ne_tree.Node l) -> ne_tree.InL r l.
@@ -51,7 +50,7 @@ Section contents.
   Proof with auto with arith. (* simpler version of the one below. doesn't provide (i < j), and doesn't need NoDup l *)
     subst qs. unfold U.qs.
     intro.
-    pattern l, (Quicksort.mon_nondet.qs (U.cmp (e:=ee) (ol:=ol)) U.pick l).
+    pattern l, (qs_definitions.mon_nondet.qs (U.cmp (e:=ee) (ol:=ol)) U.pick l).
     apply U.qs_ind.
       Focus 1.
       simpl.
@@ -65,7 +64,7 @@ Section contents.
     destruct (ne_tree.InL_map_inv _ _ H2). clear H2. destruct H0.
     destruct (ne_tree.In_map_inv _ _ H0). clear H0. destruct H3.
     subst r.
-    unfold MonoidExpec.map_fst in H1.
+    unfold monoid_expec.map_fst in H1.
     unfold fst in H1.
     destruct (in_app_or _ _ _ H1); clear H1.
       destruct (In_map_inv H0). clear H0. destruct H1.
@@ -76,17 +75,17 @@ Section contents.
           apply vec.In_nth.
         apply vec.In_nth.
       apply vec.remove_In with x...
-    destruct (NeTreeMonad.In_bind_inv _ _ H3). clear H3. destruct H1.
+    destruct (ne_tree_monad.In_bind_inv _ _ H3). clear H3. destruct H1.
     unfold U.M in H3.
     rewrite MonoidMonadTrans.bind_toLower in H3.
-    rewrite (@mon_assoc NeTreeMonad.M ) in H3.
-    destruct (NeTreeMonad.In_bind_inv _ _ H3). clear H3. destruct H4.
+    rewrite (@mon_assoc ne_tree_monad.M ) in H3.
+    destruct (ne_tree_monad.In_bind_inv _ _ H3). clear H3. destruct H4.
     revert H0.
-    rewrite (@mon_assoc NeTreeMonad.M) in H4.
+    rewrite (@mon_assoc ne_tree_monad.M) in H4.
     rewrite MonoidMonadTrans.ret_toLower in H4.
-    rewrite (@mon_lunit NeTreeMonad.M) in H4.
+    rewrite (@mon_lunit ne_tree_monad.M) in H4.
     simpl @fst in H4.
-    rewrite (@mon_lunit NeTreeMonad.M) in H4.
+    rewrite (@mon_lunit ne_tree_monad.M) in H4.
     simpl @fst in H4.
     unfold snd in H4.
     inversion_clear H4.
@@ -108,14 +107,13 @@ Section contents.
     split; apply H4 with Gt...
   Qed.
 
-
   Theorem qs_sound_cmps: forall l,
     forall r, ne_tree.In r (qs l) -> NoDup l ->
       forall i j, In (i, j) (fst r) -> i < j.
   Proof with auto with arith.
     subst qs. unfold U.qs.
     intro.
-    pattern l, (Quicksort.mon_nondet.qs (U.cmp (e:=ee) (ol:=ol)) U.pick l).
+    pattern l, (qs_definitions.mon_nondet.qs (U.cmp (e:=ee) (ol:=ol)) U.pick l).
     apply U.qs_ind.
       simpl.
       intros r H.
@@ -128,7 +126,7 @@ Section contents.
     destruct (ne_tree.InL_map_inv _ _ H3). clear H3. destruct H0.
     destruct (ne_tree.In_map_inv _ _ H0). clear H0. destruct H4.
     subst r.
-    unfold MonoidExpec.map_fst in H2.
+    unfold monoid_expec.map_fst in H2.
     unfold fst in H2.
     destruct (in_app_or _ _ _ H2); clear H2.
       destruct (In_map_inv H0). clear H0. destruct H2.
@@ -146,17 +144,17 @@ Section contents.
         cset(natBelow_unique _ _ H5).
         subst x1...
       subst...
-    destruct (NeTreeMonad.In_bind_inv _ _ H4). clear H4. destruct H2.
+    destruct (ne_tree_monad.In_bind_inv _ _ H4). clear H4. destruct H2.
     unfold U.M in H4.
     rewrite MonoidMonadTrans.bind_toLower in H4.
-    rewrite (@mon_assoc NeTreeMonad.M ) in H4.
-    destruct (NeTreeMonad.In_bind_inv _ _ H4). clear H4. destruct H5.
+    rewrite (@mon_assoc ne_tree_monad.M ) in H4.
+    destruct (ne_tree_monad.In_bind_inv _ _ H4). clear H4. destruct H5.
     revert H0.
-    rewrite (@mon_assoc NeTreeMonad.M) in H5.
+    rewrite (@mon_assoc ne_tree_monad.M) in H5.
     rewrite MonoidMonadTrans.ret_toLower in H5.
-    rewrite (@mon_lunit NeTreeMonad.M) in H5.
+    rewrite (@mon_lunit ne_tree_monad.M) in H5.
     simpl @fst in H5.
-    rewrite (@mon_lunit NeTreeMonad.M) in H5.
+    rewrite (@mon_lunit ne_tree_monad.M) in H5.
     simpl @fst in H5.
     unfold snd in H5.
     inversion_clear H5.
@@ -182,10 +180,8 @@ Section contents.
     apply H with x Gt x2...
   Qed.
 
-  (* The last two lemmas used to be joined together, but that way the NoDup parameter was also needed just to get the first lemma's result. *)
-
-Require Import MonoidExpec.
-Require Import Rbase.
+  Require Import monoid_expec.
+  Require Import Rbase.
 
   Lemma sound_cmp_expec_0 i j (l: list (Index ee ol)):
     (~ In i l \/ ~ In j l) -> monoid_expec (U.ijcount i j) (qs l) = 0.
@@ -214,8 +210,4 @@ Require Import Rbase.
     subst...
   Qed.
 
-
 End contents.
-
-
-

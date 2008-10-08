@@ -2,10 +2,10 @@
 Set Implicit Arguments.
 
 Require Import List.
-Require Import ListUtils.
+Require Import list_utils.
 Require Import Bool.
-Require Import Expec.
-Require Import Util.
+Require Import expec.
+Require Import util.
 Require Import sums_and_averages.
 Require Import Rbase.
 

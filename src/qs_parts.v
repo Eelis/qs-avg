@@ -1,24 +1,24 @@
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Plus.
 Require Import Lt.
 Require Import Arith.
-Require Import MonoidExpec.
+Require Import monoid_expec.
 Require Import List.
-Require Import Monads.
-Require Import ListUtils.
+Require Import monads.
+Require Import list_utils.
 Require Import Coq.Program.Wf.
-Require Import MonoidMonadTrans.
-Require Import nats_below.
-Require Import MonoidTreeMonad.
-Require Quicksort.
-Require FixMeasureSubLems.
-Require Import NatBelow.
+Require Import monoid_monad_trans.
+Require Import nat_seqs.
+Require Import monoid_tree_monad.
+Require qs_definitions.
+Require fix_measure_utils.
+Require Import nat_below.
 Require Import Bvector.
 
-Import Quicksort.mon_nondet.
+Import qs_definitions.mon_nondet.
 
 Section contents.
 
@@ -35,7 +35,7 @@ Section contents.
   Definition partitionPart n (t: vector X (S n)) (i: natBelow (S n))
     := partition M cmp (vec.nth t i) (vec.remove t i) >>= lowRecPart t i.
 
-  Definition selectPivotPart n (t: vector X (S n)) := pick (nats_below_S n) >>= partitionPart t.
+  Definition selectPivotPart n (t: vector X (S n)) := pick (ne_list.from_vec (vec.nats 0 (S n))) >>= partitionPart t.
 
   Definition body n (v: vector X n) :=
     match v with
@@ -47,7 +47,7 @@ Section contents.
     match l0 as l1 return (l1 = l0 -> M (list X)) with
     | nil => fun _ => ret nil
     | h :: t => fun e =>
-      i <- pick (nats_below_S (length t));
+      i <- pick (ne_list.from_vec (vec.nats 0 (length (h :: t))));
       part <- partition M cmp (vec.nth (h :: t) i) (vec.remove (h :: t) i);
       low <- qs (exist (fun l': list X => length l' < length l0) (proj1_sig part Lt) (qs_obligation_1 M qs e i part));
       upp <- qs (exist (fun l': list X => length l' < length l0) (proj1_sig part Gt) (qs_obligation_2 M qs e i part low));
@@ -83,7 +83,7 @@ Section contents.
     intro.
     unfold qs.
     fold raw_body.
-    rewrite FixMeasureSubLems.unfold.
+    rewrite fix_measure_utils.unfold.
       rewrite <- bodies.
       unfold qs. fold raw_body...
     intros.
@@ -108,7 +108,7 @@ Section contents.
   Proof with auto.
     intros.
     unfold qs. fold raw_body.
-    apply FixMeasureSubLems.recti2.
+    apply fix_measure_utils.rect.
       intros.
       apply raw_body_ext.
       intros.
@@ -127,7 +127,7 @@ Section contents.
       unfold qs. fold raw_body...
     intros.
     unfold qs. fold raw_body.
-    rewrite H...
+    rewrite H0...
   Qed.
 
 End contents.

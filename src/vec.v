@@ -2,13 +2,13 @@ Set Implicit Arguments.
 
 (* Intended for use without Import. *)
 
-Require Import NatBelow.
-Require Import Util.
-Require Import ListUtils.
+Require Import nat_below.
+Require Import util.
+Require Import list_utils.
 Require Import Le.
 Require Import Plus.
 Require Import Lt.
-Require Import ArithLems.
+Require Import arith_lems.
 Require Import Bvector.
 Require Import Relations.
 Require List.
@@ -512,7 +512,7 @@ Proof with auto.
   apply perm_trans with (Vcons (head v0) (Vcons (nth (tail v0) (mkNatBelow v p)) H))...
 Qed.
 
-Require Import SkipList.
+Require Import skip_list.
 
 Lemma SkipList_tail (A: Set) n (v: vector A (S n)): SkipList (tail v) v.
 Proof.

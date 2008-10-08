@@ -3,7 +3,7 @@ Set Implicit Arguments.
 
 Require Import List.
 Require Import Bool.
-Require Import Util.
+Require Import util.
 
 Hint Resolve in_map.
 

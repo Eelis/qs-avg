@@ -1,9 +1,9 @@
 
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
-Require Import ArithLems.
+Require Import arith_lems.
 Require Import Plus.
 Require Import Minus.
 Require Import Lt.
@@ -11,16 +11,16 @@ Require Import Arith.
 Require Import Recdef.
 Require Import Bool_nat.
 Require Import List.
-Require Import ListUtils.
+Require Import list_utils.
 Require Import Omega.
 Require Import Arith.
 Require Import Bool.
 Require Import EqNat.
-Require Import nats_below.
-Require Import SortOrder.
+Require Import nat_seqs.
+Require Import sort_order.
 Require Import Bvector.
 Require Import Relations.
-Require Import NatBelow.
+Require Import nat_below.
 Require vec.
 Require Import Compare_dec.
 

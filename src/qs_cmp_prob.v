@@ -1,7 +1,6 @@
-
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Plus.
 Require Import Minus.
@@ -9,44 +8,31 @@ Require Import Lt.
 Require Import Arith.
 Require Import Recdef.
 Require Import Bool_nat.
-Require Import ArithLems.
-Require Import NatBelow.
+Require Import arith_lems.
+Require Import nat_below.
 Require Import List.
-Require Import Monads.
+Require Import monads.
 Require Import Bool.
 Require Import Compare_dec.
 Require Import EqNat.
 Require Import Relation_Definitions.
-Require FixMeasureSubLems.
-Require Import MonoidMonadTrans.
-Require Import Expec.
-Require Import MonoidExpec.
-Require Import nats_below.
-Require Import ListUtils.
+Require Import monoid_monad_trans.
+Require Import expec.
+Require Import monoid_expec.
+Require Import nat_seqs.
+Require Import list_utils.
 Require Import sums_and_averages.
-Require Quicksort.
-Require QsParts.
+Require qs_definitions.
+Require qs_parts.
 Require U.
-Require Import Indices.
-Require Import QsSoundCmps.
-Require QsCaseSplit.
-Require Import QsCases.
+Require Import indices.
+Require Import qs_sound_cmps.
+Require qs_case_split.
+Require Import qs_cases.
 Require Import Fourier.
 Require Import Rbase.
-Require Import SortOrder.
-
-Import Quicksort.mon_nondet.
-
-Lemma sigh n: 0 <= 2 * / INR (S n).
-Proof with auto with real.
-  intros.
-  unfold Rdiv...
-  apply Rle_mult_inv_pos...
-Qed.
-
-Hint Resolve sigh.
-
-Require Import Minus.
+Require Import sort_order.
+Import qs_definitions.mon_nondet.
 
 Section contents.
 
@@ -92,13 +78,13 @@ Section contents.
       intros.
       apply Rle_trans with 0.
         compute...
-      apply sigh.
+      apply zero_le_2_div_Sn.
     intros.
     clear l.
     destruct (Index_In_dec i v).
-      Focus 2. rewrite H1... apply sigh.
+      Focus 2. rewrite H1... apply zero_le_2_div_Sn.
     destruct (Index_In_dec j v).
-      Focus 2. rewrite H1... apply sigh.
+      Focus 2. rewrite H1... apply zero_le_2_div_Sn.
     clear H1.
     rename H2 into H1.
     rename i0 into H2.
@@ -109,14 +95,15 @@ Section contents.
     cset (@monoid_expec_Node_map U.monoid (U.ijcount i j) (natBelow (S n))).
     simpl in H8. rewrite H8. clear H8.
     unfold monoid_expec_sum.
-    rewrite nats_below_S_length.
+    rewrite ne_list.from_vec_to_plain at 2.
+    rewrite vec.length.
     rewrite <- arith_part with n b i j...
     unfold Rdiv.
     apply Rmult_le_compat_r...
     cset (monoid_expec_map_fst_monoid_mult (U.hom_ijcount i j)).
     simpl monoid_mult in H8.
     unfold monoid_expec in H8.
-    apply (@QsCaseSplit.case_split ee ol b i j (list (Index ee ol)) (U.ijcount i j ∘ fst) n v); intros; try rewrite H8...
+    apply (@qs_case_split.case_split ee ol b i j (list (Index ee ol)) (U.ijcount i j ∘ fst) n v); intros; try rewrite H8...
             apply case_A with b...
             intros. apply H0 with b0... apply sound_cmp_expec_0...
           apply case_BD with b...

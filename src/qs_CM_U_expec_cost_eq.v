@@ -1,28 +1,25 @@
 Set Implicit Arguments.
 
 Require U.
-Require Import MonoidExpec.
-Require Import Expec.
-Require Quicksort.
-Import Quicksort.mon_nondet.
+Require Import monoid_expec.
+Require Import expec.
+Require Import qs_definitions.
+Import mon_nondet.
 Require Import List.
-Require Import Util.
-Require Import Monads.
-Require Import ListUtils.
-Require Import Indices.
-Require Import MonoidMonadTrans.
+Require Import util.
+Require Import monads.
+Require Import list_utils.
+Require Import indices.
+Require Import monoid_monad_trans.
 Require Import sums_and_averages.
-Require QsParts.
+Require qs_parts.
 Require Import Rdefinitions.
-Require Import nats_below.
-Require Import Quicksort.
-Require Import SortOrder.
+Require Import nat_seqs.
+Require Import sort_order.
 Require NDP.
-Require Import NatBelow.
+Require Import nat_below.
 Require Import Bvector.
 Require vec.
-
-Import Quicksort.mon_nondet.
 
 Implicit Arguments length [[A]].
 Implicit Arguments fst [[A] [B]].
@@ -50,40 +47,40 @@ Section contents.
     unfold NDP.qs, U.qs.
     intro.
     pattern l, (qs (@U.cmp ee ol) U.pick l).
-    apply QsParts.rect...
+    apply qs_parts.rect...
       apply U.Mext.
     clear l.
     intros.
-    rewrite QsParts.toBody.
+    rewrite qs_parts.toBody.
       Focus 2.
       apply NDP.Mext.
     rewrite vec.List_map.
-    rewrite (vec.vec_round_trip (vec.map (@subscript _ _) v) (QsParts.body NDP.M NDP.pick (NDP.cmp ee))).
-    rewrite QsParts.toBody_cons.
-    unfold QsParts.selectPivotPart.
-    unfold QsParts.partitionPart.
-    unfold QsParts.lowRecPart.
+    rewrite (vec.vec_round_trip (vec.map (@subscript _ _) v) (qs_parts.body NDP.M NDP.pick (NDP.cmp ee))).
+    rewrite qs_parts.toBody_cons.
+    unfold qs_parts.selectPivotPart.
+    unfold qs_parts.partitionPart.
+    unfold qs_parts.lowRecPart.
     simpl.
     repeat rewrite ne_list.map_map.
     f_equal.
     unfold compose.
     apply ne_list.map_ext.
     intro.
-    repeat rewrite NeTreeMonad.map_bind.
-    repeat rewrite (@mon_assoc NeTreeMonad.M).
+    repeat rewrite ne_tree_monad.map_bind.
+    repeat rewrite (@mon_assoc ne_tree_monad.M).
     simpl.
-    repeat rewrite NeTreeMonad.map_bind.
-    repeat rewrite (@mon_assoc NeTreeMonad.M).
+    repeat rewrite ne_tree_monad.map_bind.
+    repeat rewrite (@mon_assoc ne_tree_monad.M).
     rewrite NDP.partition.
     rewrite U.partition.
     simpl.
-    repeat rewrite (@mon_assoc NeTreeMonad.M).
-    apply NeTreeMonad.bind_eq with nat (@fst nat (list ee)) (fun x: prod U.monoid (list (Index ee ol)) => length (fst x)).
+    repeat rewrite (@mon_assoc ne_tree_monad.M).
+    apply ne_tree_monad.bind_eq with nat (@fst nat (list ee)) (fun x: prod U.monoid (list (Index ee ol)) => length (fst x)).
       simpl.
       intros.
-      repeat rewrite (@mon_assoc NeTreeMonad.M).
+      repeat rewrite (@mon_assoc ne_tree_monad.M).
       simpl.
-      apply (NeTreeMonad.bind_eq) with nat (@fst nat (list ee)) (fun x: prod U.monoid (list (Index ee ol)) => length (fst x)).
+      apply (ne_tree_monad.bind_eq) with nat (@fst nat (list ee)) (fun x: prod U.monoid (list (Index ee ol)) => length (fst x)).
         intros.
         simpl.
         unfold compose.

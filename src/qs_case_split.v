@@ -1,27 +1,26 @@
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Plus.
 Require Import Minus.
 Require Import Lt.
 Require Import Arith.
 Require Import Bvector.
-Require Import ArithLems.
+Require Import arith_lems.
 Require Import List.
-Require Import Monads.
-Require FixMeasureSubLems.
-Require Import MonoidMonadTrans.
-Require Import Expec.
-Require Import nats_below.
-Require Import ListUtils.
+Require Import monads.
+Require Import monoid_monad_trans.
+Require Import expec.
+Require Import nat_seqs.
+Require Import list_utils.
 Require Import sums_and_averages.
-Require Quicksort.
+Require qs_definitions.
 Require U.
-Require Import Indices.
+Require Import indices.
 Require Import Rbase.
-Require Import SortOrder.
-Require Import NatBelow.
+Require Import sort_order.
+Require Import nat_below.
 Require vec.
 
 Section contents.
@@ -45,14 +44,14 @@ Section contents.
     rewrite H...
   Qed.
 
-  Lemma case_split b: forall i j (X: Set) (f: U.monoid * X -> nat) n (vex: vector (Index ee ol) (S n)) (g: natBelow (S n) -> MonoidMonadTrans.M U.monoid NeTreeMonad.ext X), IndexSeq b vex -> (b <= i)%nat -> (i < j)%nat -> (j < b + S n)%nat -> forall ca cb, 0 <= ca -> 0 <= cb ->
+  Lemma case_split b: forall i j (X: Set) (f: U.monoid * X -> nat) n (vex: vector (Index ee ol) (S n)) (g: natBelow (S n) -> MonoidMonadTrans.M U.monoid ne_tree_monad.ext X), IndexSeq b vex -> (b <= i)%nat -> (i < j)%nat -> (j < b + S n)%nat -> forall ca cb, 0 <= ca -> 0 <= cb ->
     (forall pi, (vec.nth vex pi < i)%nat -> expec f (g pi) <= ca) ->
     (forall pi, (nb_val (vec.nth vex pi) = i)%nat -> expec f (g pi) <= cb) ->
     (forall pi, (i < vec.nth vex pi)%nat ->
                 (vec.nth vex pi < j)%nat -> expec f (g pi) = 0) ->
     (forall pi, (nb_val (vec.nth vex pi) = j)%nat -> expec f (g pi) <= cb) ->
     (forall pi, (j < vec.nth vex pi)%nat -> expec f (g pi) <= ca) ->
-      Rsum (map (expec f ∘ g) (nats_below_S n))
+      Rsum (map (expec f ∘ g) (ne_list.from_vec (vec.nats 0 (S n))))
         <= ca * INR (i - b) + (cb + (0 + (cb + (ca * INR(b + n - j))))).
   Proof with auto with real.
     intros.
@@ -60,14 +59,13 @@ Section contents.
     destruct (vec.Permutation_mapping (vec.perm_sym (vec_IndexSeq_nats_perm vex H))).
     destruct H11.
     unfold compose.
-    replace (Rsum (map (fun x1 : natBelow (S n) => expec f (g x1)) (nats_below_S n)))
+    replace (Rsum (map (fun x1 : natBelow (S n) => expec f (g x1)) (ne_list.from_vec (vec.nats 0 (S n)))))
      with (Rsum (map (fun x1 : natBelow (S n) => expec f (g x1)) x)).
       Focus 2.
       apply Rsum_Permutation.
       apply Permutation_sym.
       apply Permutation_map.
-      unfold nats_below_S.
-      rewrite vec_to_ne_list_to_plain.
+      rewrite ne_list.from_vec_to_plain.
       apply NoDup_incl_Permutation.
           do 2 rewrite vec.length...
           apply (vec.NoDup_nats (S n) 0).

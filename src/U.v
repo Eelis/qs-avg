@@ -1,26 +1,27 @@
 
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import EqNat.
 Require Import Compare_dec.
 Require Import Bool.
 Require Import Lt.
-Require Import ListUtils.
+Require Import list_utils.
 Require Import List.
 Require Import Compare_dec.
-Require Import Monads.
-Require Import MonoidMonadTrans.
-Require Import nats_below.
-Require Import Quicksort.
-Require Import MonoidExpec.
-Require QsParts.
-Require Import SortOrder.
-Require Import Indices.
+Require Import monads.
+Require Import monoid_monad_trans.
+Require Import nat_seqs.
+Require Import qs_definitions.
+Require Import monoid_expec.
+Require qs_parts.
+Require Import sort_order.
+Require Import indices.
 Require Import Arith.
-Require Import NatBelow.
+Require Import nat_below.
 Require Import Bvector.
+Require ne_tree_monad.
 
 Import mon_nondet.
 
@@ -42,10 +43,10 @@ Section contents.
 
   Definition monoid := ListMonoid.M (nat * nat).
 
-  Definition M: Monad := MonoidMonadTrans.M monoid NeTreeMonad.ext.
+  Definition M: Monad := MonoidMonadTrans.M monoid ne_tree_monad.ext.
 
   Lemma Mext: extMonad M.
-  Proof MonoidMonadTrans.Mext monoid NeTreeMonad.ext.
+  Proof MonoidMonadTrans.Mext monoid ne_tree_monad.ext.
 
   Definition unordered_nat_pair (x y: nat): nat * nat :=
     if le_lt_dec x y then (x, y) else (y, x).
@@ -56,7 +57,7 @@ Section contents.
   Definition homo: monoidHomo monoid NatAddMonoid (fun x => length x).
   Proof with auto. apply Build_monoidHomo... simpl. intros. rewrite app_length... Qed.
 
-  Definition pick := MonoidTreeMonad.pick monoid.
+  Definition pick := monoid_tree_monad.pick monoid.
 
   Require Import Rdefinitions.
 
@@ -66,7 +67,7 @@ Section contents.
   Proof with auto. (* todo: rename *)
     induction l...
     simpl.
-    rewrite (@mon_assoc (NeTreeMonad.M)).
+    rewrite (@mon_assoc (ne_tree_monad.M)).
     rewrite IHl.
     simpl.
     rewrite app_nil_r...
@@ -98,18 +99,18 @@ Section contents.
                 (foo <- qs cmp pick (filter (fun f: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f (vec.nth v x0)) Lt)) (vec.remove v x0));
                 bar <- qs cmp pick (filter (fun f: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f (vec.nth v x0)) Gt)) (vec.remove v x0));
                 ret (foo ++ (vec.nth v x0 :: filter (fun f0: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f0 (vec.nth v x0)) Eq)) (vec.remove v x0)) ++ bar)))
-            (nats_below_S n))).
+            (ne_list.from_vec (vec.nats 0 (S n))))).
 
     Theorem qs_ind: forall l, P l (qs cmp pick l).
     Proof with auto.
-      apply QsParts.rect...
+      apply qs_parts.rect...
         apply Mext.
       intros.
-      unfold QsParts.body.
-      replace (QsParts.selectPivotPart M pick cmp v) with (ne_tree.Node (ne_list.map (fun x0: natBelow (S n) => ne_tree.map (map_fst (app (map (fun i0: Index e ol => unordered_nat_pair i0 ((vec.nth v x0))) (vec.remove v x0)))) (
+      unfold qs_parts.body.
+      replace (qs_parts.selectPivotPart M pick cmp v) with (ne_tree.Node (ne_list.map (fun x0: natBelow (S n) => ne_tree.map (map_fst (app (map (fun i0: Index e ol => unordered_nat_pair i0 ((vec.nth v x0))) (vec.remove v x0)))) (
       foo <- qs cmp pick (filter (fun f: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f (vec.nth v x0)) Lt)) (vec.remove v x0));
       bar <- qs cmp pick (filter (fun f: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f (vec.nth v x0)) Gt)) (vec.remove v x0));
-      ret (m:=NeTreeMonad.M) (nil, foo ++ (vec.nth v x0 :: filter (fun f0: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f0 (vec.nth v x0)) Eq)) (vec.remove v x0)) ++ bar))) (nats_below_S n))).
+      ret (m:=ne_tree_monad.M) (nil, foo ++ (vec.nth v x0 :: filter (fun f0: Index e ol => unsum_bool (cmp_cmp (Ecmp (UE e ol) f0 (vec.nth v x0)) Eq)) (vec.remove v x0)) ++ bar))) (ne_list.from_vec (vec.nats 0 (S n))))).
         simpl @ret in Pcons.
         Focus 1.
         specialize (Pcons v).
@@ -121,27 +122,27 @@ Section contents.
         apply le_lt_trans with (length (vec.to_list (vec.remove v x0))).
           apply count_le.
         rewrite vec.length...
-      unfold QsParts.selectPivotPart.
-      unfold QsParts.partitionPart.
-      unfold QsParts.lowRecPart.
+      unfold qs_parts.selectPivotPart.
+      unfold qs_parts.partitionPart.
+      unfold qs_parts.lowRecPart.
       simpl.
       f_equal.
       repeat rewrite ne_list.map_map.
       apply ne_list.map_ext. intro.
       unfold compose. simpl.
-      rewrite NeTreeMonad.map_bind.
-      rewrite (@mon_assoc (NeTreeMonad.M)).
+      rewrite ne_tree_monad.map_bind.
+      rewrite (@mon_assoc (ne_tree_monad.M)).
       rewrite partition. simpl.
-      rewrite (@mon_assoc (NeTreeMonad.M)). simpl.
-      rewrite (@mon_assoc (NeTreeMonad.M)). simpl.
+      rewrite (@mon_assoc (ne_tree_monad.M)). simpl.
+      rewrite (@mon_assoc (ne_tree_monad.M)). simpl.
       rewrite (@simplePartition_component (UE e ol)).
-      apply NeTreeMonad.ext. intro.
-      rewrite (@mon_assoc (NeTreeMonad.M)). simpl.
-      rewrite NeTreeMonad.map_bind.
-            rewrite (@mon_assoc (NeTreeMonad.M)). simpl.
-      rewrite (@mon_assoc (NeTreeMonad.M)). simpl.
+      apply ne_tree_monad.ext. intro.
+      rewrite (@mon_assoc (ne_tree_monad.M)). simpl.
+      rewrite ne_tree_monad.map_bind.
+            rewrite (@mon_assoc (ne_tree_monad.M)). simpl.
+      rewrite (@mon_assoc (ne_tree_monad.M)). simpl.
       rewrite (@simplePartition_component (UE e ol)).
-      apply NeTreeMonad.ext. intro.
+      apply ne_tree_monad.ext. intro.
       unfold compose, map_fst.
       simpl.
       rewrite (@simplePartition_component (UE e ol)).

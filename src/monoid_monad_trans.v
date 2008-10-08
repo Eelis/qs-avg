@@ -1,9 +1,9 @@
 Set Implicit Arguments.
 
-Require Import Util.
-Require ListUtils.
+Require Import util.
+Require list_utils.
 Require Import List.
-Require Import Monads.
+Require Import monads.
 
 Record Monoid: Type :=
   { monoid_type:> Set
@@ -48,7 +48,7 @@ Section MonoidMonadTrans.
           simpl.
           rewrite mon_lunit.
           simpl.
-          assert (ext_eq (fun y: prod monoid b => Monads.ret (m:=monad) (monoid_mult monoid (monoid_zero monoid) (fst y), snd y)) ret).
+          assert (ext_eq (fun y: prod monoid b => monads.ret (m:=monad) (monoid_mult monoid (monoid_zero monoid) (fst y), snd y)) ret).
             intro.
             rewrite monoid_lunit.
             destruct x0...
@@ -58,7 +58,7 @@ Section MonoidMonadTrans.
         unfold ret_MMT, bind_MMT, compose.
         simpl.
         rewrite mon_lunit_under_bind...
-        assert (ext_eq (fun x => Monads.ret (m:=monad) (monoid_mult monoid (fst x) (monoid_zero monoid), snd x)) (@Monads.ret monad (prod monoid a))).
+        assert (ext_eq (fun x => monads.ret (m:=monad) (monoid_mult monoid (fst x) (monoid_zero monoid), snd x)) (@monads.ret monad (prod monoid a))).
           intro.
           rewrite monoid_runit.
           destruct x...
@@ -145,7 +145,7 @@ Qed.
 Lemma return_cost (T: Set) (x: T): cost (@ret SimplyProfiled T x) = 0.
 Proof. auto. Qed.
 
-Lemma CMext: extMonad SimplyProfiled. (* todo: rename *)
+Lemma SimplyProfiled_ext: extMonad SimplyProfiled.
   unfold SimplyProfiled.
   intro.
   simpl.
@@ -163,7 +163,7 @@ Section ListMonoid.
   Variable T: Set.
 
   Definition M: Monoid :=
-    Build_Monoid (@nil T) (@app T) (@refl_equal (list T)) (@ListUtils.app_nil_r T) (@app_ass T).
+    Build_Monoid (@nil T) (@app T) (@refl_equal (list T)) (@list_utils.app_nil_r T) (@app_ass T).
 
 End ListMonoid.
 End ListMonoid.

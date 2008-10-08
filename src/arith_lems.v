@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Lt.
 Require Import Rbase.
@@ -474,26 +474,6 @@ Proof with auto with real.
   apply (prod_neq_R0 a b)...
 Qed.
 
-Lemma honing (a b c: R) (n: nat): ((a + b * c) * / INR (S n) = 0 ->
-  0 <= a -> 0 <= b -> 0 < c -> a = 0 /\ b = 0)%R.
-Proof with auto with real. (* todo: rename *)
-  intros.
-  destruct (Rmult_0_inv H).
-    assert ((0 <= c)%R)...
-    assert ((0 <= b * c)%R).
-      apply Rmult_le_pos...
-    split.
-      apply (Rplus_eq_0_l a ((b * c)%R) H0 H5 H3).
-    rewrite Rplus_comm in H3.
-    cset (Rplus_eq_0_l ((b * c)%R) a H5 H0 H3).
-    destruct (Rmult_0_inv H6)...
-    elimtype False.
-    subst.
-    apply (Rlt_irrefl 0)...
-  elimtype False.
-  apply (Rinv_neq_0_compat (INR (S n)))...
-Qed.
-
 Lemma Req_le_trans x y z: x = y -> y <= z -> x <= z.
 Proof. intros. subst. assumption. Qed.
 
@@ -508,6 +488,15 @@ Proof with auto with real.
   destruct (Rle_lt_or_eq_dec y x r)...
   elimtype False...
 Qed.
+
+Lemma zero_le_2_div_Sn n: 0 <= (2 * / INR (S n))%R.
+Proof with auto with real.
+  intros.
+  unfold Rdiv...
+  apply Rle_mult_inv_pos...
+Qed.
+
+Hint Resolve zero_le_2_div_Sn.
 
 Definition bigO (f g: nat -> R): Prop := exists c, exists n, forall x, (n <= x)%nat -> f x <= c * g x.
 

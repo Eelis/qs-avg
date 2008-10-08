@@ -1,8 +1,10 @@
 Set Implicit Arguments.
 
 Require Import Setoid.
-Require Import Util.
+Require Import util.
+Require vec.
 Require List.
+Require Import Bvector.
 
 Section contents.
 
@@ -96,3 +98,20 @@ Hint Immediate In_one.
 Hint Immediate In_cons_head.
 Hint Immediate head_in_self.
 Hint Immediate In_round_tripped_head.
+
+Fixpoint from_vec (A: Set) n: vector A (S n) -> L A :=
+  match n return vector A (S n) -> L A with
+  | 0 => fun v => one (vec.head v)
+  | _ => fun v => cons (vec.head v) (from_vec (vec.tail v))
+  end.
+
+Lemma from_vec_to_plain (A: Set) n (v: vector A (S n)): to_plain (from_vec v) = vec.to_list v.
+Proof with reflexivity.
+  induction n; intros.
+    rewrite (vec.eq_cons v).
+    simpl.
+    rewrite (vec.eq_nil (vec.tail v))...
+  rewrite (vec.eq_cons v).
+  simpl.
+  rewrite IHn...
+Qed.

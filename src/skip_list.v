@@ -1,7 +1,5 @@
 Set Implicit Arguments.
 
-(* todo: rename this file to SkipList.v *)
-
 Require Import List.
 
 Section contents.

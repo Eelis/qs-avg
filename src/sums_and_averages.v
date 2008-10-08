@@ -1,13 +1,13 @@
 
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import List.
 Require Import Plus.
 Require Import Arith.
-Require Import ArithLems.
-Require Import nats_below.
-Require Import ListUtils.
+Require Import arith_lems.
+Require Import nat_seqs.
+Require Import list_utils.
 
 (* sum *)
 
@@ -202,9 +202,9 @@ Proof with auto.
   rewrite map_map...
 Qed.
 
-Lemma RsumOver_nats_natsBelow b w f:
+Lemma RsumOver_nats b w f:
   RsumOver (nats b w) f =
-  RsumOver (natsBelow w) (f ∘ plus b).
+  RsumOver (nats 0 w) (f ∘ plus b).
 Proof with auto.
   intros.
   replace b with ((b + 0)%nat)...

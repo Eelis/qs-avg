@@ -1,26 +1,24 @@
-
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import List.
 Require Import Le.
 Require Import Lt.
 Require Import Plus.
-Require Import Monads.
-Require Import Measured.
+Require Import monads.
 Require Import Coq.Program.Wf.
-Require Import nats_below.
-Require Import ListUtils.
+Require Import nat_seqs.
+Require Import list_utils.
 Require Import Bool.
 Require Import Recdef.
-Require Import MonoidMonadTrans.
+Require Import monoid_monad_trans.
 Require Import Compare_dec.
 Require Coq.Program.Wf.
 Require Import Wf_nat.
-Require Import ArithLems.
+Require Import arith_lems.
+Require ne_list.
 Require Omega.
-
-Require FixMeasureSubLems.
+Require fix_measure_utils.
 
 (*Extraction Language Haskell.*)
 
@@ -75,7 +73,7 @@ Section nonmonadic.
     intros.
     unfold qs.
     fold body.
-    rewrite FixMeasureSubLems.unfold.
+    rewrite fix_measure_utils.unfold.
       unfold body at 1.
       simpl proj1_sig.
       f_equal.
@@ -96,12 +94,12 @@ Section nonmonadic.
     Proof with auto with arith.
       unfold qs.
       fold body.
-      apply FixMeasureSubLems.recti2.
+      apply fix_measure_utils.rect.
         apply body_eq.
       intros.
       destruct x...
       simpl.
-      apply Pcons; apply H; unfold MR; simpl...
+      apply Pcons; apply H; unfold fix_measure_utils.MR; simpl...
     Qed.
 
   End rect.
@@ -270,7 +268,7 @@ Section mon_det. (* For variable discharging. *)
     unfold qs at 1.
     simpl.
     fold body.
-    rewrite FixMeasureSubLems.unfold.
+    rewrite fix_measure_utils.unfold.
       simpl.
       repeat rewrite mon_assoc.
       apply hm...
@@ -363,52 +361,14 @@ Section mon_nondet.
         tt <- partition pivot t ;
         ret (addToPartitioning b h tt)
     end.
-(*
-Inductive IMonad: Set -> Type :=
-  | ret' (A: Set): A -> IMonad A
-  | cmp': T -> T -> IMonad comparison
-  | bind' (A B: Set): IMonad A -> (A -> IMonad B) -> IMonad B.
 
-  Fixpoint interpret (A: Set) (m: IMonad A): M A :=
-    match m in IMonad aap return M aap with
-    | ret' Y x => ret x
-    | cmp' x y => cmp x y
-    | bind' _ _ x f => bind (interpret x)  (@interpret _ ∘ f)
-    end.
-
-  Fixpoint mpartition (pivot: T) (l: list T) {struct l}: IMonad { p: Partitioning | Permutation (p Eq ++ p Lt ++ p Gt) l } :=
-    match l return IMonad { p: Partitioning | Permutation (p Eq ++ p Lt ++ p Gt) l } with
-    | nil => ret' emp
-    | h :: t =>
-        bind' (cmp' h pivot) (fun b =>
-        bind' (mpartition pivot t) (fun tt =>
-        ret' (addToPartitioning b h tt)))
-    end.
-
-  Hypothesis Mext: extMonad M.
-
-  Lemma partition_honest: forall p l, interpret (mpartition p l) = partition p l.
-  Proof with auto.
-    induction l...
-    simpl.
-    unfold compose.
-    apply Mext.
-    intro.
-    simpl.
-    rewrite IHl.
-    apply Mext.
-    intro.
-    unfold compose.
-    simpl...
-  Qed.
-*)
   Variable pick: forall (A: Set), ne_list.L A -> M A.
 
   Program Fixpoint qs (l: list T) {measure length l}: M (list T) :=
     match l with
     | nil => ret nil
     | h :: t =>
-        i <- pick (nats_below_S (length t));
+        i <- pick (ne_list.from_vec (vec.nats 0 (length (h :: t))));
         part <- partition (vec.nth (h :: t) i) (vec.remove (h :: t) i);
         low <- qs (part Lt);
         upp <- qs (part Gt);
@@ -438,7 +398,7 @@ Inductive IMonad: Set -> Type :=
 End mon_nondet.
 End mon_nondet.
 
-Require Import SortOrder.
+Require Import sort_order.
 
 Fixpoint simplerPartition (e: E) (d: e) (l: list e) {struct l}: { p: Partitioning e | Permutation (p Eq ++ p Lt ++ p Gt) l } :=
   match l return { p: Partitioning e | Permutation (p Eq ++ p Lt ++ p Gt) l } with

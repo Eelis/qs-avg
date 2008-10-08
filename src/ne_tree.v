@@ -4,7 +4,7 @@ Set Implicit Arguments.
 
 Require ne_list.
 Require Import Setoid.
-Require Import Util.
+Require Import util.
 Require List.
 
 Section contents.

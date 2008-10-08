@@ -6,29 +6,30 @@ Require Import Le.
 Require Import Lt.
 Require Import Plus.
 Require Import Arith.
-Require Import Monads.
-Require Import Util.
-Require Import MonoidMonadTrans.
+Require Import monads.
+Require Import util.
+Require Import monoid_monad_trans.
 Require Import sums_and_averages.
 Require Import Rbase.
 Require Import Fourier.
+Require ne_tree_monad.
 
 Section contents.
 
   Variable m: Monoid.
   Variable X: Set.
 
-  Definition pick (l: ne_list.L X): MonoidMonadTrans.M m NeTreeMonad.ext X
-    := lift (MonoidMonadTrans.T m) NeTreeMonad.ext X (NeTreeMonad.pick l).
+  Definition pick (l: ne_list.L X): MonoidMonadTrans.M m ne_tree_monad.ext X
+    := lift (MonoidMonadTrans.T m) ne_tree_monad.ext X (ne_tree_monad.pick l).
 
   Lemma pick_toLower:
-    ext_eq pick (@NeTreeMonad.pick _ ∘ ne_list.map (pair (monoid_zero m))).
+    ext_eq pick (@ne_tree_monad.pick _ ∘ ne_list.map (pair (monoid_zero m))).
   Proof with auto.
     unfold compose, ext_eq.
     unfold pick.
     unfold lift.
     simpl.
-    unfold NeTreeMonad.pick.
+    unfold ne_tree_monad.pick.
     intros.
     unfold compose.
     simpl.

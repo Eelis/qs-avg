@@ -1,6 +1,6 @@
 Set Implicit Arguments.
 
-Require Import Util.
+Require Import util.
 Require Import Le.
 Require Import Plus.
 Require Import Minus.
@@ -9,36 +9,27 @@ Require Import Arith.
 Require Import Recdef.
 Require Import Bool_nat.
 Require Import List.
-Require Import Monads.
-Require Import Measured.
+Require Import monads.
 Require Import Relation_Definitions.
-Require FixMeasureSubLems.
-Require Import MonoidMonadTrans.
-Require Import Expec.
-Require Import MonoidExpec.
-Require Import nats_below.
-Require Import ListUtils.
+Require Import monoid_monad_trans.
+Require Import expec.
+Require Import monoid_expec.
+Require Import nat_seqs.
+Require Import list_utils.
 Require Import sums_and_averages.
-Require Quicksort.
-Require QsParts.
+Require qs_definitions.
+Require qs_parts.
 Require U.
-Require Import SortOrder.
-Require Import Indices.
-Require Import QsSoundCmps.
+Require Import sort_order.
+Require Import indices.
+Require Import qs_sound_cmps.
 Require Import Fourier.
 Require Import Rbase.
-Require Import SkipList.
-Require Import NatBelow.
+Require Import skip_list.
+Require Import nat_below.
 Require Import Bvector.
 
-Import Quicksort.mon_nondet.
-
-Lemma sigh n: 0 <= 2 * / INR (S n).
-Proof with auto with real.
-  intros.
-  unfold Rdiv...
-  apply Rle_mult_inv_pos...
-Qed. (* todo: move, rename *)
+Import qs_definitions.mon_nondet.
 
 Section contents.
 
@@ -64,8 +55,6 @@ Section contents.
   Variable iin: In i v.
   Variable jin: In j v.
   Variable pi: natBelow (S n).
-
-Hint Resolve sigh.
 
   Lemma not_In_flt (k: Index ee ol) (dr: comparison) (H0: dr <> Ecmp (UE ee ol) k (vec.nth v pi)):
     ~ In k (flt pi dr).
@@ -105,9 +94,6 @@ Hint Resolve sigh.
 
   Hint Immediate U.hom_ijcount.
   Hint Immediate vec.remove_perm.
-
-  Lemma yada x y c: Ecmp ee x y = c -> unsum_bool (cmp_cmp (Ecmp ee x y) c) = true.
-  Proof. intros. rewrite H. destruct c; auto. Qed. (* todo: rename *)
 
   Lemma pivot_not_In_flt cr: ~ In (vec.nth v pi) (flt pi cr).
   Proof.

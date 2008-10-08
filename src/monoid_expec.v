@@ -1,16 +1,17 @@
 Set Implicit Arguments.
 
-Require Import Expec.
-Require Import MonoidMonadTrans.
-Require Import MonoidTreeMonad.
+Require Import expec.
+Require Import monoid_monad_trans.
+Require Import monoid_tree_monad.
 Require Import Rdefinitions.
-Require Import Monads.
-Require Import Util.
+Require Import monads.
+Require Import util.
 Require Import Bool.
 Require Import sums_and_averages.
 Require Import List.
-Require Import ListUtils.
+Require Import list_utils.
 Require Import Rbase.
+Require ne_tree_monad.
 
 Implicit Arguments fst [[A] [B]].
 
@@ -21,18 +22,18 @@ Section contents.
   Variables (m: Monoid) (ms: m -> nat).
 
   Definition monoid_expec {A: Set}:
-    MonoidMonadTrans.M m NeTreeMonad.ext A -> R
+    MonoidMonadTrans.M m ne_tree_monad.ext A -> R
       := expec (ms ∘ fst).
 
-  Lemma monoid_expec_bind_leaf (X Y: Set) (f: X -> MonoidMonadTrans.M m NeTreeMonad.ext Y)
+  Lemma monoid_expec_bind_leaf (X Y: Set) (f: X -> MonoidMonadTrans.M m ne_tree_monad.ext Y)
     (n: prod m X):
-    monoid_expec (@bind (MonoidMonadTrans.M m NeTreeMonad.ext) _ _ (ne_tree.Leaf n) f) =
+    monoid_expec (@bind (MonoidMonadTrans.M m ne_tree_monad.ext) _ _ (ne_tree.Leaf n) f) =
     expec (ms ∘ monoid_mult m (fst n) ∘ fst) (f (snd n)).
   Proof.
     intros.
     unfold monoid_expec.
     rewrite MonoidMonadTrans.bind_toLower'.
-    rewrite NeTreeMonad.bind_Leaf.
+    rewrite ne_tree_monad.bind_Leaf.
     simpl @ret.
     simpl mon.
     rewrite expec_bind_leaf.
@@ -42,11 +43,11 @@ Section contents.
   Hypothesis mh: monoidHomo m NatAddMonoid ms.
 
   Definition monoid_expec_sum (T U: Set)
-  (g: T -> MonoidMonadTrans.M m NeTreeMonad.ext U): list T -> R
+  (g: T -> MonoidMonadTrans.M m ne_tree_monad.ext U): list T -> R
     := Rsum ∘ map (monoid_expec ∘ g).
 
   Lemma monoid_expec_sum_ext (T U: Set)
-    (f g: T -> MonoidMonadTrans.M m NeTreeMonad.ext U):
+    (f g: T -> MonoidMonadTrans.M m ne_tree_monad.ext U):
       ext_eq f g ->
       ext_eq (monoid_expec_sum f) (monoid_expec_sum g).
   Proof with auto.
@@ -61,7 +62,7 @@ Section contents.
     apply H.
   Qed.
 
-  Lemma monoid_expec_Node_map (A B: Set) (f: A -> MonoidMonadTrans.M m NeTreeMonad.ext B) (l: ne_list.L A):
+  Lemma monoid_expec_Node_map (A B: Set) (f: A -> MonoidMonadTrans.M m ne_tree_monad.ext B) (l: ne_list.L A):
     monoid_expec (ne_tree.Node (ne_list.map f l)) =
     monoid_expec_sum f l / INR (length l).
   Proof with auto.
@@ -85,9 +86,9 @@ Section contents.
     rewrite (monoidHomo_zero mh)...
   Qed.
 
-  Lemma monoid_expec_bind_leaf_plus (X Y: Set) (f: X -> MonoidMonadTrans.M m NeTreeMonad.ext Y)
+  Lemma monoid_expec_bind_leaf_plus (X Y: Set) (f: X -> MonoidMonadTrans.M m ne_tree_monad.ext Y)
     (n: prod m X):
-    monoid_expec (@bind (MonoidMonadTrans.M m NeTreeMonad.ext) _ _ (ne_tree.Leaf n) f) =
+    monoid_expec (@bind (MonoidMonadTrans.M m ne_tree_monad.ext) _ _ (ne_tree.Leaf n) f) =
        INR (ms (fst n)) + monoid_expec (f (snd n)).
   Proof with auto.
     intros.
@@ -102,8 +103,8 @@ Section contents.
     apply (monoidHomo_mult mh).
   Qed.
 
-  Lemma monoid_expec_bind_det (X: Set) (v: prod m X) (x: MonoidMonadTrans.M m NeTreeMonad.ext X):
-    NeTreeMonad.deterministic x v -> forall (Y: Set) (f: X -> MonoidMonadTrans.M m NeTreeMonad.ext Y), monoid_expec (x >>= f) = monoid_expec x + monoid_expec (f (snd v)).
+  Lemma monoid_expec_bind_det (X: Set) (v: prod m X) (x: MonoidMonadTrans.M m ne_tree_monad.ext X):
+    ne_tree_monad.deterministic x v -> forall (Y: Set) (f: X -> MonoidMonadTrans.M m ne_tree_monad.ext Y), monoid_expec (x >>= f) = monoid_expec x + monoid_expec (f (snd v)).
   Proof with auto with real.
     intros.
     rewrite H.
@@ -116,8 +117,8 @@ Section contents.
   Hint Resolve ne_tree.In_head.
 
   Lemma monoid_expec_plus (A B: Set)
-    (f: MonoidMonadTrans.M m NeTreeMonad.ext A)
-    (g: A -> MonoidMonadTrans.M m NeTreeMonad.ext B)
+    (f: MonoidMonadTrans.M m ne_tree_monad.ext A)
+    (g: A -> MonoidMonadTrans.M m ne_tree_monad.ext B)
     (gc: forall x y, ne_tree.In x f -> ne_tree.In y f ->
      monoid_expec (g (snd x)) = monoid_expec (g (snd y))):
       monoid_expec (f >>= g) = monoid_expec f + monoid_expec (g (snd (ne_tree.head f))).
@@ -126,10 +127,10 @@ Section contents.
     revert f.
     induction f.
         rewrite (@monoid_expec_bind_det _ n)...
-        unfold NeTreeMonad.deterministic...
+        unfold ne_tree_monad.deterministic...
       unfold monoid_expec in *.
       rewrite MonoidMonadTrans.bind_toLower in *.
-      rewrite NeTreeMonad.bind_Node_one.
+      rewrite ne_tree_monad.bind_Node_one.
       repeat rewrite expec_Node_one.
       intros.
       rewrite IHf...
@@ -144,7 +145,7 @@ Section contents.
       repeat rewrite S_INR.
       rewrite (gc (ne_tree.head (ne_list.head l)) (ne_tree.head f))...
         simpl.
-        unfold NeTreeMonad.C.
+        unfold ne_tree_monad.C.
         field...
       apply ne_tree.InNode. apply ne_tree.InTail.
       destruct l...
@@ -153,7 +154,7 @@ Section contents.
     apply gc...
   Qed.
 
-  Lemma monoid_expec_map_fst_monoid_mult (A: Set) (g: m) (t: MonoidMonadTrans.M m NeTreeMonad.ext A):
+  Lemma monoid_expec_map_fst_monoid_mult (A: Set) (g: m) (t: MonoidMonadTrans.M m ne_tree_monad.ext A):
     monoid_expec (ne_tree.map (map_fst (monoid_mult m g)) t) =
     INR (ms g) + monoid_expec t.
   Proof with auto.
@@ -183,9 +184,9 @@ Section contents.
   Qed.
 
   Lemma monoid_expec_bind_0_r (A B: Set)
-    (g: A -> MonoidMonadTrans.M m NeTreeMonad.ext B)
+    (g: A -> MonoidMonadTrans.M m ne_tree_monad.ext B)
     (gc: forall x, monoid_expec (g x) = 0)
-    (f: MonoidMonadTrans.M m NeTreeMonad.ext A):
+    (f: MonoidMonadTrans.M m ne_tree_monad.ext A):
       monoid_expec (f >>= g) = monoid_expec f.
   Proof with auto with real.
     intros.
