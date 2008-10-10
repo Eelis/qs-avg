@@ -221,13 +221,13 @@ When instantiated with this monad and comparison operation, |qs| produces the co
 
 %format `infixbind_SP` = >>="_{SP}"
 
-Defining |cost| and |result| as the first and second projection, respectively, we trivially have identities such as |cost (ret_SP x) = 0|, |cost (x `infixbind_SP` f) = cost x + cost (f (result x))|, and |cost (le_SP x y) = 1|. This very modest amount of machinery is sufficient for a straightforward proof of Quicksort's quadratic worst-case complexity.
+Defining |cost| and |result| as the first and second projection, respectively, we trivially have identities such as |cost (ret_SP x) = 0|, |cost (le_SP x y) = 1|, and |cost (x `infixbind_SP` f) = cost x + cost (f (result x))|. This very modest amount of machinery is sufficient for a straightforward proof of Quicksort's quadratic worst-case complexity.
 
-\begin{propo}|qs_worst: forall l, cost (qs_SP l) <= sqrd (length l).|\footnote{(We do not use big-O notation for this simple statement, as it would only obfuscate. Big-O complexity is discussed in section \ref{statement}.)}
+\begin{propo}|qs_worst: forall l, cost (qs_SP l) <= sqrd (length l).|\footnote{We do not use big-O notation for this simple statement, as it would only obfuscate. Big-O complexity is discussed in section \ref{statement}.}
 \end{propo}
 
 \begin{proof}
-  The proof is by induction on |qs|. For an empty input list, we have |cost (qs_SP nil) = cost (ret nil) = 0 <= sqrd (length l)|. For a non-empty input list |h :: t|, the cost decomposes into
+  The proof is by induction on |qs|. For |l==nil|, we have {|cost (qs_SP nil) = cost (ret nil) = 0 <= sqrd (length l)|}. For |l==h :: t|, the cost decomposes into
   \begin{code}
     cost (filter (le h) t) + cost (qs_SP (result (filter (lt h) t))) +
     cost (filter (gt h) t) + cost (qs_SP (result (filter (gt h) t))) +
@@ -246,7 +246,7 @@ Defining |cost| and |result| as the first and second projection, respectively, w
   which is true by elementary arithmetic. \qed
 \end{proof}
 
-We now expand the technique in preparation of the average-case complexity proof.
+We now expand the technique in preparation for the average-case complexity proof.
 
 \section{Nondeterminism and Expected Values}
 \label{nondetexpec}
@@ -271,7 +271,7 @@ First, we define |partition|. Instead of a two-way comparison operation producin
     end.
 \end{code}
 
-Next, we redefine |qs| to use |partition|, and have it take as an additional parameter a |pick| operation, representing nondeterministic selection of an element of a non-empty list of choices. (An |ne_list T| is a non-empty list of |T|'s.)
+Next, we redefine |qs| to use |partition|, and have it take as an additional parameter a |pick| operation, representing nondeterministic selection of an element of a non-empty list of choices. An |ne_list T| is a non-empty list of |T|'s, inductively defined in the obvious way. 
 
 \begin{code}
   Variable pick: forall A: Set, ne_list A -> M A.
@@ -299,7 +299,7 @@ Let us now consider what kind of nondeterminism monad would be suitable for reas
 When executed in the list monad (commonly used to emulate nondeterministic computation), this program
 produces |[0, 1, 2]| as its list of possible outcomes. Unfortunately, the information that 0 is a more likely outcome than 1 or 2, has been lost. Such relative probabilities are critical to the notion of an expected value: the expected value of the program above is |avg [0, avg [1, 2]] = {-"\frac{3}{4}"-} /= 1 = avg [0, 1, 2]|. This makes list nondeterminism unsuitable for our purposes.
 
-Using tree nondeterminism instead solves the problem.
+Using tree nondeterminism instead solves the problem: we introduce the type |ne_tree| of non-empty trees, building on |ne_list|: 
 \begin{code}
   Inductive ne_tree (T: Set): Set :=
     | Leaf: T -> ne_tree T
@@ -578,20 +578,18 @@ The proof is now complete.
 \section{Final Remarks}
 \label{conclusion}
 
-In the interest of brevity, we have omitted lots of detail and various lemmas in the description of the proof. Still, the parts shown are reasonably faithful to the actual formalization, with two notable exceptions.
+In the interest of brevity, we have omitted lots of gory details and various lemmas in the description of the proof. Still, the parts shown are reasonably faithful to the actual formalization, with two notable exceptions. 
 
 First, we have pretended to have used ordinary natural numbers as indices into ordinary lists, completely ignoring issues of index validity that could not be ignored in the actual formalization. There, we use vectors (lists whose size is part of their type) and bounded natural numbers in many places instead. Using these substantially reduces the amount of |i < length l| proofs that need to be produced, converted, and passed around, but this solution is still far from painless.
 
 Second, using the |Program| facility to deal with Quicksort's non-structural recursion is not completely as trivial as we made it out to be. Since the recursive calls are nested in lambda abstractions passed to the |bind| operation of an unspecified monad, the relation between their arguments and the function's parameters is not locally known, resulting in unprovable proof obligations. To make these provable, we $\Sigma$-decorated the types of |filter| and |partition| in the actual formalization with modest length guarantees.
 % \item Using the induction principles corresponding to the definitions produced by |Program| for a function already defined with two layers of monadicity quickly became unwieldy. To deal with this, we defined a series of specialized induction principles for specific instances of |qs|, which put the recursive proof obligation in as simple terms as possible, with as little monadic indirection as possible, using among other things the observations regarding determinism of the comparison operation, as described in section \ref{finishing}.
 
-For all the gruesome details, we refer the interested reader to the Coq source files.
-
 The formalized development successfully adopted from the original proof the idea of using a nondeterministic version of the algorithm to make the $O(n \log n)$ bound hold for any input list, the idea of taking an order-indexed perspective to reduce the problem to a sum-of-expected-comparison-counts, and the use of the standard bound for harmonic series for the strictly numerical part. However, for the actual reduction and the derivation of the formula for the expected comparison count, the intuitive arguments essentially had to be reworked from scratch, building on the monadic representation of the algorithm and the various comparison counting/nondeterminism monads.
 
 The shallow monadic embedding provides a simple but effective representation of the algorithm. Being parameterized on the monad used, it allows a single definition to be instantiated either with basic monads (like the identity monad or bare nondeterminism monads) to get a non-instrumented version suitable for extraction and correctness proofs, or with |MMT|-transformed monads to support complexity proofs. Furthermore, since the shallowness of the embedding lets us re-use all standard Coq data types and facilities, including the powerful |Program Fixpoint| command, the actual algorithm definition itself is reasonably clean.
 
-For future work, an interesting next challenge is to try and formalize a (likely more complex) proof that the $O(n \log n)$ bound holds also for deterministic Quicksorts (with sensible pivot selection strategies).
+We have shown that it is straightforward to give a fully formal treatment in type theory of a classical result in complexity theory. This clearly shows the utility and applicability of the general monadic framework for worst- and average-case complexity that we have developed. 
 
 \bibliographystyle{plain}
 \addcontentsline{toc}{chapter}{Bibliography}
