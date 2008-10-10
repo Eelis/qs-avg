@@ -17,7 +17,11 @@
 
     <h2>Paper Abstract</h2>
 
-    <p>As a case-study in machine-checked reasoning about the complexity of algorithms in type theory, we describe a proof of the average-case complexity of Quicksort in Coq.  The proof attempts to follow a textbook development, at the heart of which lies a technical lemma about the behaviour of the algorithm for which the original proof only gives an intuitive justification. Our formalization includes a fully formal treatment of this lemma, combining some existing and novel techniques: a shallow embedding of the algorithm as a monadically expressed functional program; a variety of operation-counting monads that capture worst- and average-case complexity of deterministic and non-deterministic programs, including the generalization to count in an arbitrary monoid; a small theory of expectation for such non-deterministic computations, featuring both general map-fusion like results, and specific counting arguments for computing bounds.</p>
+    <p>As a case-study in machine-checked reasoning about the complexity of algorithms in type theory, we describe a proof of the average-case complexity of Quicksort in Coq.  The proof attempts to follow a textbook development, at the heart of which lies a technical lemma about the behaviour of the algorithm for which the original proof only gives an intuitive justification.</p>
+
+    <p>We introduce a general framework for algorithmic complexity in type theory, combining some existing and novel techniques: algorithms are given a shallow embedding as monadically expressed functional programs; we introduce a variety of operation-counting monads to capture worst- and average-case complexity of deterministic and non-deterministic programs, including the generalization to count in an arbitrary monoid; and we give a small theory of expectation for such non-deterministic computations, featuring both general map-fusion like results, and specific counting arguments for computing bounds.</p>
+
+    <p>Our formalization of the average-case complexity of Quicksort includes a fully formal treatment of the 'tricky' textbook lemma, exploiting the generality of our monadic framework to support a key step in the proof, where the expected comparison count is translated into the expected length of a recorded list of all comparisons.</p>
 
     <h2>Source Package</h2>
 
