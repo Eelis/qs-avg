@@ -7,6 +7,7 @@
 \newcommand{\thetitle}{A Machine-checked Proof of the Average-case Complexity of Quicksort in Coq}
 
 \usepackage{color}
+\usepackage{amsmath}
 \usepackage[colorlinks,pdftitle=\thetitle,pdfauthor=\theauthors]{hyperref}
 
 \spnewtheorem*{propo}{Proposition}{\bfseries}{\rmfamily}
@@ -181,7 +182,7 @@ Since we are working in Coq, we already have at our disposal a full functional p
         ret (lower ++ pivot :: upper)
     end.
 \end{code}
-|Monad| is a dependent record containing the (coercible) carrier of type |Set -> Set|, along with |bind| (infix: |>>=|) and |ret| (for ``return'') operations, and the three monad laws. For a general introduction to monadic programming and monad laws, see \cite{wadler93monads}. Furthermore, we use Haskell's ``do-notation'', and freely use standard monadic functions such as |liftM| and |filterM|.
+|Monad| is a dependent record containing the (coercible) carrier of type |Set -> Set|, along with |bind| (infix: |>>=|) and |ret| (for ``return'') operations, and the three monad laws. For a general introduction to monadic programming and monad laws, see \cite{wadler93monads}. Furthermore, we use Haskell's ``do-notation'', and freely use standard monadic functions such as |liftM| (of type |forall (M: Monad) (A B: Set), (A -> B) -> (M A -> M B)|) and |filterM| (of type |forall (M: Monad) (A: Set), (A -> M bool) -> list A -> M (list A)|).
 
 We use Coq's |Program Fixpoint| facility \cite{subsetcoercions} to cope with Quicksort's non-structural recursion, specifying list length as an input measure function that is separately shown to strongly decrease for each recursive call. For |qs|, these proof obligations are trivial enough for Coq to prove mostly by itself.
 
@@ -229,9 +230,9 @@ Defining |cost| and |result| as the first and second projection, respectively, w
 \begin{proof}
   The proof is by induction on |qs|. For |l==nil|, we have {|cost (qs_SP nil) = cost (ret nil) = 0 <= sqrd (length l)|}. For |l==h :: t|, the cost decomposes into
   \begin{code}
-    cost (filter (le h) t) + cost (qs_SP (result (filter (lt h) t))) +
+    cost (filter (le h) t) + cost (qs_SP (result (filter (le h) t))) +
     cost (filter (gt h) t) + cost (qs_SP (result (filter (gt h) t))) +
-    cost (ret (result (qs_SP (result (filter (lt h) t))) ++
+    cost (ret (result (qs_SP (result (filter (le h) t))) ++
      h :: result (qs_SP (result (filter (gt h) t))))).
   \end{code}
   The |filter| costs are easily proved (by induction on |t|) to be |length t| each. The cost of the final |ret| is 0 by definition. The induction hypothesis applies to the recursive |qs_SP| calls. Furthermore, by induction on |t|, we can easily prove
@@ -257,7 +258,7 @@ Combined, these two traits ensure that the $O(n \log n)$ average-case bound hold
 
 Hence, we now modify our |qs| definition to use a three-way partition pass, and to use nondeterministic pivot selection. Following that, we will compose a new monad (again using |MMT|, but this time transforming a nondeterminism monad) that the new definition can be instantiated with to capture its \emph{expected} comparison count.
 
-First, we define |partition|. Instead of a two-way comparison operation producing a monadic |bool|, it takes a three-way comparison operation producing a monadic |comparison|, which is an enumeration with values |Lt|, |Eq|, and |Gt|. We represent the resulting partitioning by a function of type |comparison -> list T| rather than a record or tuple type containing three lists, because in the actual source code, this saves us from having to constantly map |comparison| values to corresponding record field accessors or tuple projections.
+First, we define |partition|. Instead of a two-way comparison operation producing a monadic |bool|, it takes a three-way comparison operation producing a monadic |comparison|, which is an enumeration with values |Lt|, |Eq|, and |Gt|. We represent the resulting partitioning by a function of type |comparison -> list T| rather than a record or tuple type containing three lists, because in the actual formalization, this saves us from having to constantly map |comparison| values to corresponding record field accessors or tuple projections. This is only a matter of minor convenience; a record or tuple could have been used instead without problems.
 
 \begin{code}
   Variables (T: Set) (M: Monad) (cmp: T -> T -> M comparison).
@@ -289,6 +290,8 @@ Next, we redefine |qs| to use |partition|, and have it take as an additional par
     end.
 \end{code}
 The functions |nth| and |remove| select and remove the $n$th element of a list, respectively.
+
+Note that the Quicksort definition in section \ref{embed} could have been implemented with a |partition| pass as well, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasize that the properties the average-case proof demands of the algorithm rule out the naive but familiar implementation using |filter| passes.
 
 Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and a deterministic |pick| operation, like |head|.
 
@@ -337,25 +340,24 @@ To denote the expected value of a \emph{measure} of the output of a program, we 
 
 Thus, given a program |P| of type |M_ne_tree (list bool)|, |expec length P| denotes the expected length of the result list, if we interpret values of type |M_ne_tree T| as nondeterministically computed values of type |T|.
 
-|expec| gives rise to a host of identities, such as
+The function |expec| gives rise to a host of identities, such as
 
-\begin{code}
-  0 <= expec f t
-  expec (fun x => f x + g x) t = expec f t + expec g t.
-  expec ((* c) fcmp f) = (* c) fcmp expec f
-
-  (forall x `In` t -> f x <= g x) -> expec f t <= expec g t.
-  (forall x `In` t -> f x = c) -> expec f t = c
-  (forall x, x `In` t -> f x = 0) <-> expec f t = 0
-
-  expec f (t >>= (ret fcmp g)) = expec (f fcmp g) t = expec f (ne_tree.map g t)
-\end{code}
+\begin{align}
+  0 &\le |expec f t| \nonumber \\
+  |expec (fun x => f x + g x) t| &= |expec f t + expec g t| \nonumber \\
+  |expec ((* c) fcmp f)| &= |(* c) fcmp expec f| \nonumber \\
+  |(forall x `In` t -> f x <= g x) -> expec f t| &\le |expec g t| \nonumber \\
+  |(forall x `In` t -> f x = c) -> expec f t| &= c \nonumber \\
+  |(forall x `In` t -> f x = 0) <-> expec f t| &= 0 \nonumber \\
+  |expec f (t >>= (ret fcmp g))| &= |expec (f fcmp g) t| \nonumber \\
+    &= |expec f (ne_tree.map g t)| \label{expec_bind_lem}
+\end{align}
 
 To form the monad with which we will instantiate |qs| for the main theorem, we now piggyback the additive monoid on |nat| onto |M_ne_tree| using |MMT|, and call the result |NDP| (for ``nondeterministically profiled''):
 \begin{code}
   Definition M_NDP: Monad := MMT NatAddMonoid M_ne_tree.
 
-  Definition cmp_NDP (x y: T): M bool := ret_ne_tree (1, cmp x y).
+  Definition cmp_NDP (x y: T): M_NDP bool := ret_ne_tree (1, cmp x y).
 
   Definition qs_NDP := qs M_NDP cmp_NDP (lift pick_ne_tree).
 \end{code}
@@ -397,9 +399,9 @@ We now state the main theorem.
   Theorem qs_avg: over length, expec cost fcmp qs_NDP =O(fun n => INR (n * log2ceil n)).
 \end{code}
 Thanks to the property discussed at the start of the previous section, % perhaps too far back
-|qs_avg| follows as a corollary from the stronger statement that
+|qs_avg| follows as a corollary from the stronger statement
 \begin{code}
-  forall l, expec cost (qs_NDP l) <= 2 * length l * (1 + log2ceil (length l)),
+  qs_expec_cost: forall l, expec cost (qs_NDP l) <= 2 * length l * (1 + log2ceil (length l)),
 \end{code}
 the proof of which is described in the next two sections.
 
@@ -443,7 +445,7 @@ We now rewrite
 \end{code}
 The first equality expresses that the expected number of comparisons counted by |NDP| is equal to the expected length of the list of comparisons recorded by |U|. In the formalization, this is a separate lemma proved by induction on |qs|. The second equality merely unfolds the definition of |monoid_expec|.
 
-After rewriting with the last of the identities listed for |expec| in section \ref{nondetexpec}, the goal becomes
+After rewriting with identity \ref{expec_bind_lem} from section \ref{nondetexpec}, the goal becomes
 \begin{code}
   expec length (ne_tree.map fst (qs_U li)) <= {-"\displaystyle{\sum_{(i, j) \in \Varid{IJ}}}"-} ecc i j.
 \end{code}
@@ -578,7 +580,7 @@ The proof is now complete.
 \section{Final Remarks}
 \label{conclusion}
 
-In the interest of brevity, we have omitted lots of gory details and various lemmas in the description of the proof. Still, the parts shown are reasonably faithful to the actual formalization, with two notable exceptions. 
+In the interest of brevity, we have omitted lots of detail and various lemmas in the description of the proof. Still, the parts shown are reasonably faithful to the actual formalization, with two notable exceptions.
 
 First, we have pretended to have used ordinary natural numbers as indices into ordinary lists, completely ignoring issues of index validity that could not be ignored in the actual formalization. There, we use vectors (lists whose size is part of their type) and bounded natural numbers in many places instead. Using these substantially reduces the amount of |i < length l| proofs that need to be produced, converted, and passed around, but this solution is still far from painless.
 
