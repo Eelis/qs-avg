@@ -38,6 +38,7 @@
 %format Variables = "\mathbf{Variables}"
 %format measure = "\mathbf{measure}"
 
+%format prod = "\hspace{-1mm}\times\hspace{-1mm} "
 %format sp = "\ "
 
 %format == = "= "
@@ -195,7 +196,7 @@ For reasons that will become clear in later sections, we compose the monad we wi
 \begin{code}
   Variables (monoid: Monoid) (monad: Monad).
 
-  Let C_MMT (T: Set): Set := monad (monoid * T).
+  Let C_MMT (T: Set): Set := monad (monoid prod T).
 
   Let ret_MMT (T: Set): T -> C_MMT T := ret fcmp pair (monoid_zero monoid).
 
@@ -422,14 +423,14 @@ The left inequality is the challenging one. To bring it closer to the index summ
 
 Next, we introduce a specialized monad and comparison operation that go one step further in focusing specifically on these indices.
 \begin{code}
-  Definition Monoid_U: Monoid := (list (nat * nat), nil, ++).
+  Definition Monoid_U: Monoid := (list (nat prod nat), nil, ++).
 
   Definition U: Monad := MonoidMonadTrans.M Monoid_U NeTreeMonad.
 
   Definition lookup_cmp (x y: nat): comparison :=
     cmp (nth (sort l) x) (nth (sort l) y).
 
-  Definition unordered_nat_pair (x y: nat): nat * nat :=
+  Definition unordered_nat_pair (x y: nat): nat prod nat :=
     if x <= y then (x, y) else (y, x).
 
   Definition cmp_U (x y: nat): U comparison :=
