@@ -483,7 +483,8 @@ monoid_expec (count (i, j)) (
     pi <- pick [0 ... n-1];
     let pivot := nth li pi in
     part <- partition_U pivot (remove li pi);
-    lower <- qs_U (part Lt); upper <- qs_U (part Gt);
+    lower <- qs_U (part Lt);
+    upper <- qs_U (part Gt);
     ret (lower ++ pivot :: part Eq ++ upper)
   ) <= ecc i j.
 \end{code}
@@ -498,7 +499,8 @@ avg (map (monoid_expec (count (i, j)) fcmp (fun pi =>
     let rest := remove li pi in
     let flt := fun c => filter ((= c) fcmp lookup_cmp pivot) rest in
     ne_tree.map (map_fst (++ map (unordered_nat_pair pivot) rest)) (
-      lower <- qs_U (flt Lt); upper <- qs_U (flt Gt);
+      lower <- qs_U (flt Lt);
+      upper <- qs_U (flt Gt);
       ret (lower ++ pivot :: flt Eq ++ upper)
     ))) [0...n-1]) <= ecc i j.
 \end{code}
