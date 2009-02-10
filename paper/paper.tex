@@ -160,7 +160,13 @@ Section \ref{conclusion} ends with conclusions and final remarks.
 
 The Coq source files containing the entire formalization can be downloaded from \url{http://www.eelis.net/research/quicksort/}. The Coq version used is 8.2 beta 2.
 
-A completely different approach to type-theoretic analysis of computational complexity is to devise a special-purpose type theory in which the types of terms include some form of complexity guarantees. This is the approach taken in \cite{constable}, for example. However, as far as we can see, this method is not suitable for the formalization of a traditional complexity proof in which an algorithm is first defined and then separately analyzed. We are not aware of practical techniques usable for this purpose apart from the one we present in this paper.
+\paragraph{Related work}
+
+In his Ph.D thesis \cite{hurd}, Hurd presents an approach to formal analysis of probabilistic programs based on a comprehensive formalization of measure-theoretic constructions of probability spaces, representing probabilistic programs using a state-transforming monad in which bits from an infinite supply of random bits may be consumed. In \cite{mohringaudebaud}, Audebaud and Paulin-Mohring describe a different monadic approach in which programs are interpreted directly as measures representing probability distributions. A set of axiomatic rules is defined for estimating the probability that programs interpreted this way satisfy certain properties.
+
+Compared to these approaches, our infrastructure for reasoning about nondeterministic programs is far less ambitious, supporting only a very simplistic notion of expectation, computed simply by monadically collecting all possible outputs (which we only permit to be finitely many), and then taking the average of a measure applied to these outputs. In particular, we do not concern ourselves at all with probability distributions.
+
+A completely different approach to type-theoretic analysis of computational complexity is to devise a special-purpose type theory in which the types of terms include some form of complexity guarantees. This is the approach taken in \cite{constable}, for example.
 
 \section{A Shallow Monadic Embedding}
 \label{embed}
@@ -255,9 +261,9 @@ We now expand the technique in preparation for the average-case complexity proof
 
 The Quicksort algorithm used by the average-case proof we formalize differs from the one presented in the last section in two ways. First, it selects a pivot element nondeterministically, thereby avoiding the pathological quadratic cases any deterministic pivot selection strategy inevitably suffers. Second, it uses a single three-way partition pass instead of two two-way filter passes, thereby avoiding the pathological quadratic case that two two-way filter passes suffer for an input list whose elements are all of the same value.
 
-Combined, these two traits ensure that the $O(n \log n)$ average-case bound holds not just averaged over all possible input lists, but for each individual input list as well. This greatly simplifies things, because it means that if we prove the bound for an arbitrary input, the global bound immediately follows.
+Combined, these two traits ensure that the $O(n \log n)$ average-case bound holds not just averaged over all possible input lists, but for each individual input list as well. This greatly simplifies things, because it removes the need to carefully track input distributions in order to show that nice inputs (for which the original deterministic version of the algorithm performs well) sufficiently outnumber bad inputs (for which the original deterministic version of the algorithm performs poorly). In particular, it means that once we prove that the bound holds for an arbitrary input, the global bound immediately follows. It also means that for a key lemma near the end of our proof, we can use straightforward induction over the algorithm's recursive call structure, without having to show that given appropriately distributed inputs, the partition step yields lists that are again appropriately distributed. The latter is a typical concern in more ambitious approaches for average-case complexity analysis \cite[for example]{modularcalculus} and analysis of probabilistic algorithms.
 
-Hence, we now modify our |qs| definition to use a three-way partition pass, and to use nondeterministic pivot selection. Following that, we will compose a new monad (again using |MMT|, but this time transforming a nondeterminism monad) that the new definition can be instantiated with to capture its \emph{expected} comparison count.
+While we sympathize with the view that changing the algorithm under investigation amounts to cheating, we will nevertheless simply follow the textbook proof (which represents common practice) in this regard. Hence, we now modify our |qs| definition to use a three-way partition pass, and to use nondeterministic pivot selection. Following that, we will compose a new monad (again using |MMT|, but this time transforming a nondeterminism monad) that the new definition can be instantiated with to capture its \emph{expected} comparison count.
 
 First, we define |partition|. Instead of a two-way comparison operation producing a monadic |bool|, it takes a three-way comparison operation producing a monadic |comparison|, which is an enumeration with values |Lt|, |Eq|, and |Gt|. We represent the resulting partitioning by a function of type |comparison -> list T| rather than a record or tuple type containing three lists, because in the actual formalization, this saves us from having to constantly map |comparison| values to corresponding record field accessors or tuple projections. This is only a matter of minor convenience; a record or tuple could have been used instead without problems.
 
@@ -292,7 +298,7 @@ Next, we redefine |qs| to use |partition|, and have it take as an additional par
 \end{code}
 The functions |nth| and |remove| select and remove the $n$th element of a list, respectively.
 
-Note that the Quicksort definition in section \ref{embed} could have been implemented with a |partition| pass as well, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasize that the properties the average-case proof demands of the algorithm rule out the naive but familiar implementation using |filter| passes.
+Note that the deterministic Quicksort definition in section \ref{embed} could have been implemented with a |partition| pass as well, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasize that the properties the average-case proof demands of the algorithm rule out the naive but familiar implementation using |filter| passes.
 
 Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and a deterministic |pick| operation, like |head|.
 
@@ -438,7 +444,7 @@ Next, we introduce a specialized monad and comparison operation that go one step
 
   Definition qs_U: list nat -> list nat := qs U cmp_U pick_U.
 \end{code}
-|qs_U| operates directly on lists of indices into |sort l|. Comparison of indices is defined by comparison of the |T| values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of indices compared, by using |MMT| with |Monoid_U|, the free monoid over |nat * nat| pairs, instead of the additive monoid on |nat| we used up until now.
+|qs_U| operates directly on lists of indices into |sort l|. Comparison of indices is defined by comparison of the |T| values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of indices compared, by using |MMT| with |Monoid_U|, the free monoid over |nat prod nat| pairs, instead of the additive monoid on |nat| we used up until now.
 
 We now rewrite
 \begin{code}expec cost (qs_NDP (map (nth (sort l)) li))
@@ -457,7 +463,7 @@ We now invoke another lemma which bounds a nondeterministically computed list's 
     (forall x `In` q, expec (count x) t <= fr x) ->
     (forall x `NotIn` q, expec (count x) t = 0) -> expec length t <= {-"\displaystyle{\sum_{\Varid{x} \in \Varid{q}}\Varid{fr}\ \Varid{x}}"-}.
 \end{code}
-We end up with two subgoals, the first of which is \begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using  the last of the identities listed for |expec| in section \ref{nondetexpec} in reverse, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in
+We end up with two subgoals, the first of which is \begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using identity \ref{expec_bind_lem} from section \ref{nondetexpec} in reverse, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in
 \begin{code}
   forall i j li, (i `NotIn` li \/ j `NotIn` li) -> monoid_expec (count (i, j)) (U.qs li) = 0,
 \end{code}
