@@ -311,13 +311,13 @@ Using tree nondeterminism instead solves the problem: we introduce the type |ne_
 
   Definition ret_ne_tree {A: Set}: A -> ne_tree A := Leaf.
 
-  Fixpoint bind_ne_tree (A B: Set) (m: ne_tree A) (k: A -> ne_tree B): ne_tree B :=
-    match m with
-    | Leaf a => k a
-    | Node ts => Node (ne_list.map (fun x => bind_ne_tree x k) ts)
-    end.
-\end{code}
-\begin{code}
+  Fixpoint bind_ne_tree (A B: Set)
+    (m: ne_tree A) (k: A -> ne_tree B): ne_tree B :=
+      match m with
+      | Leaf a => k a
+      | Node ts => Node (ne_list.map (fun x => bind_ne_tree x k) ts)
+      end.
+
   Definition M_ne_tree: Monad := Build_Monad ne_tree bind_ne_tree ret_ne_tree.
 
   Definition pick_ne_tree (T: Set): ne_list T -> M_ne_tree T
