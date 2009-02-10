@@ -569,7 +569,7 @@ monoid_expec (count (i, j))
 \end{code}
 We now compare |nth (sort l) i| with |nth (sort l) pivot|.
 \begin{itemize}
-\item If the two are equal, then |i| will not occur in the |filter term|, and so (again) no |(i, j)| comparisons are performed.
+\item If the two are equal, then |i| will not occur in the |filter| term, and so (again) no |(i, j)| comparisons are performed.
 \item If |nth (sort l) i < nth (sort l) pivot|, then we must have |i < pivot|, contradicting the assumption that |pivot < i|.
 \item If |nth (sort l) i > nth (sort l) pivot|, then we apply the induction hypothesis. For this, it must be shown that filtering the list of indices preserves contiguity, which follows from the fact that the indices share the order of the elements they denote in |sort l|.
 \end{itemize}
