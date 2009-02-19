@@ -141,26 +141,26 @@ The formalisation is based on the ``paper proof'' in \cite{introtoalgos}, which 
 
 Of these three parts, only the first two involve the actual algorithm itself---the third part is strictly numerical. While the original proof provides a thorough treatment of the third part, its treatment of the first two parts is informal in two major ways.
 
-First, it never actually justifies anything in terms of the algorithm's formal semantics. Indeed, it does not even formally define the algorithm in the first place, relying instead on assertions which are taken to be intuitively true. While this practice is common and perfectly reasonable for paper proofs intended for human consumption, it is a luxury we do not afford ourselves.
+First, it never actually justifies anything in terms of the algorithm's formal semantics. Indeed, it does not even formally define the algorithm in the first place, relying instead on assertions which are taken to be intuitively true. While this practice is common and perfectly reasonable for paper proofs intended for human consumption, it is a luxury we can not afford ourselves.
 
-Second, the original proof (implicitly) assumes that the input list does not contain any duplicate elements, which significantly simplifies its derivation of the formula for the expected comparison count for pairs of individual input list elements. We do not make this assumption.
+Second, the original proof (implicitly) assumes that the input list does not contain any duplicate elements, which significantly simplifies its derivation of the formula for the expected comparison count for pairs of individual input list elements. We take care to avoid appeals to such an assumption.
   % todo: perhaps bring this up later.
 
-The key to giving a proper formal treatment of both of these aspects lies in the use of an appropriate representation of the algorithm, capable of capturing its computational behavior---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. 
+The key to giving a proper formal treatment of both these aspects lies in using an appropriate representation of the algorithm, capable of capturing its computational behavior---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. 
 The appproach we take is to consider such operation-counting as a \emph{side effect}, and to use the general framework of \emph{monads} for representing side-effecting computation in pure functional languages. 
-The representation we use takes the form of a shallow monadic embedding, in which the algorithm, here Quicksort, is written as a monadically expressed functional program. This definition is then instantiated with refinements of operation-counting monads to make the comparison count observable.
+Accordingly we use a shallow embedding, in which the algorithm, here Quicksort, is written as a monadically expressed functional program in Coq. This definition is then instantiated with refinements of operation-counting monads to make the comparison count observable.
 
 The embedding is introduced in section \ref{embed}, where we demonstrate its use by first giving a simple deterministic monadic Quicksort definition, and then instantiating it with a simple operation counting monad that lets us prove its quadratic worst-case complexity.
 
 For the purposes of the more complex average-case theorem, we then give (in section \ref{nondetexpec}) a potentially-nondeterministic monadic Quicksort definition, and compose a monad that combines operation counting with nondeterminism, supporting a formal definition of the notion of the \emph{expected} comparison count, with which we state the main theorem in section \ref{statement}.
 
-The next two sections detail the actual formalised proof. Section \ref{reduction} corresponds to the first part in the original proof described above, and shows how the main theorem can be split up into a lemma (stated in terms of another specialized monad) giving a formula for the expected comparison count for individual pairs of input element, and a strictly numerical part. Since we were able to fairly directly transcribe the latter part from the paper proof, using the existing real number theory in the Coq standard library with few complications and additions, we omit a discussion of it in this paper and refer the interested reader to the paper proof.
+The next two sections detail the actual formalised proof. Section \ref{reduction} corresponds to the first part in the original proof described above, showing how the main theorem can be split into a lemma (stated in terms of another specialized monad) giving a formula for the expected comparison count for individual pairs of input elements, and a strictly numerical part. Since we were able to fairly directly transcribe the latter from the paper proof, using the existing real number theory in the Coq standard library with few complications and additions, we omit discussion of it here and refer the interested reader to the paper proof.
 
 Section \ref{finishing} finishes the proof by proving the lemma about the expected comparison count for individual input list elements. Since this is the part where the original proof omits the most detail, and makes the assumption regarding duplicate elements, and where we really have to reason in detail about the behavior of the algorithm, it is by far the most involved part of the formalisation.
 
 Section \ref{conclusion} ends with conclusions and final remarks.
 
-The Coq source files containing the entire formalisation can be downloaded from \url{http://www.eelis.net/research/quicksort/}. The Coq version used is 8.2 beta 2.
+The Coq source files containing the entire formalisation can be downloaded from \url{http://www.eelis.net/research/quicksort/}. We used Coq version 8.2 beta 2.
 
 \paragraph{Related work}
 
@@ -175,7 +175,7 @@ In \cite{mohringaudebaud}, Audebaud and Paulin-Mohring describe a different mona
 
 Compared to these approaches, our infrastructure for reasoning about nondeterministic programs is rather less ambitious, in that we only consider finite expectation based on na{\"\i}ve counting probability, using a monad for nondeterminism which correctly supports weighted expectation. In particular, we do not need to reason explicitly with probability distributions.
 
-A completely different approach to type-theoretic analysis of computational complexity is to devise a special-purpose type theory in which the types of terms include some form of complexity guarantees. This is the approach taken in \cite{constable}, for example.
+A completely different approach to type-theoretic analysis of computational complexity is to devise a special-purpose type theory in which the types of terms include some form of complexity guarantees. Such an approach is taken in \cite{constable}, for example.
 
 \section{A Shallow Monadic Embedding}
 \label{embed}
@@ -194,8 +194,10 @@ constructor encapsulating the side effects. ``Identity'' and ``composition''
 for such functions are given by |ret| (for ``return'') of type |A -> M A| and
 |bind| (infix: |>>=|) of type |M A -> (A -> M B) -> M B| satisfying certain
 identities (the \emph{monad laws}). For a general introduction to monadic
-programming and monad laws, see \cite{wadler93monads}. Furthermore, we use
-Haskell's ``do-notation'',
+programming and monad laws, see \cite{wadler93monads}. 
+
+\noindent Furthermore, we use
+Haskell's ``do-notation'', declared in Coq as follows 
 \begin{code}
  Notation "x <- y ; z" := (bind y (fun x: _ => z)) 
 \end{code}
@@ -263,9 +265,9 @@ When instantiated with this monad and comparison operation, |qs| produces the co
   Eval compute in qs_SP (3 :: 1 :: 0 :: 4 :: 5 :: 2 :: nil).
     = (16, 0 :: 1 :: 2 :: 3 :: 4 :: 5 :: nil)
 \end{code}
-
+%%%
 %format `infixbind_SP` = >>="_{SP}"
-
+%%%
 Defining |cost| and |result| as the first and second projection, respectively, we trivially have identities such as |cost (ret_SP x) = 0|, |cost (le_SP x y) = 1|, and |cost (x `infixbind_SP` f) = cost x + cost (f (result x))|. This very modest amount of machinery is sufficient for a straightforward proof of Quicksort's quadratic worst-case complexity.
 
 \begin{propo}|qs_worst: forall l, cost (qs_SP l) <= sqrd (length l).|\footnote{We do not use big-O notation for this simple statement, as it would only obfuscate. Big-O complexity is discussed in section \ref{statement}.}
@@ -291,13 +293,13 @@ Defining |cost| and |result| as the first and second projection, respectively, w
   which is true by elementary arithmetic. \qed
 \end{proof}
 
-We now extend the technique to prepare for the average-case complexity proof.
+We now extend the technique to prepare for the average-case proof.
 
 \section{Nondeterminism and Expected Values}
 \label{nondetexpec}
 
 
-The version of Quicksort used in the average-case proof in \cite{introtoalgos}
+The version of Quicksort used in the average-case complexity proof in \cite{introtoalgos}
 differs from the one presented in the last section in two ways. This is also
 reflected in our formalisation.  
 
@@ -520,7 +522,8 @@ Next, we introduce a specialized monad and comparison operation that go one step
 
   Definition qs_U: list nat -> list nat := qs U cmp_U pick_U.
 \end{code}
-|qs_U| operates directly on lists of indices into |sort l|. Comparison of indices is defined by comparison of the |T| values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of indices compared, by using |MMT| with |Monoid_U|, the free monoid over |nat prod nat| pairs, instead of the additive monoid on |nat| we used up until now.
+The function |qs_U| operates directly on lists of indices into |sort l|. Comparison of indices is defined by comparison of the %%%|T| 
+values they denote in |sort l|. Furthermore, rather than producing a grand total comparison count the way |NDP| does, |U| records every pair of indices compared, by using |MMT| with |Monoid_U|, the free monoid over |nat prod nat| pairs, instead of the additive monoid on |nat| we used until now.
 
 We now rewrite
 \begin{code}expec cost (qs_NDP (map (nth (sort l)) li))
@@ -544,7 +547,8 @@ We end up with two subgoals, the first of which is \begin{code}forall (i, j) `No
 \begin{align}
   |forall i j li, (i `NotIn` li \/ j `NotIn` li) -> monoid_expec (count (i, j)) (U.qs li) = 0| \label{monoid_expec_zero_lem}
 \end{align}
-which can be shown by induction on |qs|, although we will not do so in this paper. We \emph{will} use this property again in the next section.
+which can be shown by induction on |qs|, although we will not do so in this paper. 
+We \emph{will} use this property again in the next section.
 
 The second subgoal, expressed with |monoid_expec|, becomes
 %%% this needs a label!!! (\label{monoid_expec_IJ_lem})
@@ -598,7 +602,7 @@ This form reflects the facts that
 \begin{itemize}
 \item the case where |pivot| is less than |i| occurs |i - b| times, and in each instance, the expected number of |(i, j)| comparisons is no more than |ecc i j|;
 \item the case where the |pivot| is equal to |i| occurs once, and in this case no more than a single |(i, j)| comparison is expected;
-\item in the case where |pivot| lies between |i| and |j|, the number of expected |(i, j)| comparisons is 0, and consequently it does not matter how many times this case occurs;
+\item in the case where |pivot| lies between |i| and |j|, the number of expected |(i, j)| comparisons is 0, and hence it does not matter how often this case occurs;
 \item the case where the |pivot| is equal to |j| occurs once, and in this case no more than a single |(i, j)| comparison is expected;
 \item the case where the |pivot| is greater than |j| occurs |b + n - j| times, and in each instance, the expected number of |(i, j)| comparisons is no more than |ecc i j|.
 \end{itemize}
@@ -615,8 +619,14 @@ With the right side of the inequality in this form, we unfold the |avg| applicat
       sum (map (expec f fcmp g) [0..n]) <=
         ca * (i - b) + cb + 0 + cb + ca * (b + n - j).
 \end{code}
-
-Five subgoals remain after applying the above lemma---one for each of the listed cases. The first one reads
+%%%
+Five subgoals remain after applying 
+%%% the above 
+    this 
+lemma---one for each 
+%%% of the listed cases. 
+    listed case. 
+The first one reads
 \begin{code}
   forall pi,
     let pivot := nth li pi in
@@ -652,9 +662,13 @@ monoid_expec (count (i, j)) (qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest)) 
 monoid_expec (count (i, j)) (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest))
   <= ecc i j.
 \end{code}
-All indices in the first filtered list denote elements that are less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that these indices are all less than |pivot|. And since |pivot < i|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons (using property 
+All indices in the first filtered list denote elements 
+%%% that are 
+less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that these indices are all less than |pivot|. And since |pivot < i|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons (using property 
    (\ref{monoid_expec_zero_lem})  
-shown at the end of the previous section). Hence, the first |monoid_expec| term vanishes as well, leaving
+shown at the end of section~\ref{reduction}). Hence, the first |monoid_expec| term vanishes%%% 
+%%% as well
+, leaving
 \begin{code}
 monoid_expec (count (i, j))
   (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest)) <= ecc i j.
@@ -666,7 +680,7 @@ We now compare |nth (sort l) i| with |nth (sort l) pivot|.
 \item If |nth (sort l) i > nth (sort l) pivot|, then we apply the induction hypothesis. For this, it must be shown that filtering the list of indices preserves contiguity, which follows from the fact that the indices share the order of the elements they denote in |sort l|.
 \end{itemize}
 This concludes the case where |pivot < i|. The case where |j < pivot| is symmetric. The other three cases use similar arguments.
-
+%%%
 The proof is now complete.
 
 \section{Final Remarks}
@@ -681,11 +695,15 @@ Second, using the |Program| facility to deal with Quicksort's non-structural rec
 
 The formalised development successfully adopted from the original proof the idea of using a nondeterministic version of the algorithm to make the $O(n \log n)$ bound hold for any input list, the idea of taking an order-indexed perspective to reduce the problem to a sum-of-expected-comparison-counts, and the use of the standard bound for harmonic series for the strictly numerical part. However, for the actual reduction and the derivation of the formula for the expected comparison count, the intuitive arguments essentially had to be reworked from scratch, building on the monadic representation of the algorithm and the various comparison counting/nondeterminism monads.
 
-The shallow monadic embedding provides a simple but effective representation of the algorithm. Being parameterized on the monad used, it allows a single definition to be instantiated either with basic monads (like the identity monad or bare nondeterminism monads) to get a non-instrumented version suitable for extraction and correctness proofs, or with |MMT|-transformed monads to support complexity proofs. Furthermore, since the shallowness of the embedding lets us re-use all standard Coq data types and facilities, including the powerful |Program Fixpoint| command, the actual algorithm definition itself is reasonably clean.
+The shallow monadic embedding provides a simple but effective representation of the algorithm. Being parameterized on the monad used, it allows a single definition to be instantiated either with basic monads (like the identity monad or bare nondeterminism monads) to get a non-instrumented version suitable for extraction and correctness proofs, or with |MMT|-transformed monads to support complexity proofs. Furthermore, since 
+%%% the shallowness of the embedding 
+    this approach lets us re-use all standard Coq data types and facilities, including the powerful |Program Fixpoint| command, the actual algorithm definition itself is reasonably clean.
 
 We have shown that it is straightforward to give a fully formal treatment in type theory of a classical result in complexity theory. This clearly shows the utility and applicability of the general monadic 
-%%%framework for 
-approach to worst- and average-case complexity that we have developed. 
+%%% framework for 
+    approach 
+%%% to worst- and average-case complexity that 
+we have developed. 
 
 \bibliographystyle{plain}
 \addcontentsline{toc}{chapter}{Bibliography}
