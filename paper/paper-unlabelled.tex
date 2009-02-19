@@ -541,22 +541,22 @@ We now invoke another lemma which bounds a nondeterministically computed list's 
 \end{code}
 We end up with two subgoals, the first of which is \begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using identity \ref{expec_bind_lem} from section \ref{nondetexpec} in reverse, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in
 %%% this needs a label!!! (\label{monoid_expec_zero_lem})
-\begin{align}
-  |forall i j li, (i `NotIn` li \/ j `NotIn` li) -> monoid_expec (count (i, j)) (U.qs li) = 0| \label{monoid_expec_zero_lem}
-\end{align}
+\begin{code}
+  forall i j li, (i `NotIn` li \/ j `NotIn` li) -> monoid_expec (count (i, j)) (U.qs li) = 0 
+\end{code}
 which can be shown by induction on |qs|, although we will not do so in this paper. We \emph{will} use this property again in the next section.
 
 The second subgoal, expressed with |monoid_expec|, becomes
 %%% this needs a label!!! (\label{monoid_expec_IJ_lem})
-\begin{align}
-  |forall (i, j) `In` IJ, monoid_expec (count (i, j)) (qs_U li) <= ecc i j| \label{monoid_expec_IJ_lem}
-\end{align}
+\begin{code}
+  forall (i, j) `In` IJ, monoid_expec (count (i, j)) (qs_U li) <= ecc i j. 
+\end{code}
 which corresponds exactly to the property described at the beginning of this section. We prove it in the next section.
 
 \section{Finishing the Proof}
 \label{finishing}
 
-Again, the proof of (\ref{monoid_expec_IJ_lem}) 
+Again, the proof %%% of (\ref{monoid_expec_IJ_lem}) 
 is by induction on |qs|. But to get a better induction hypothesis, we drop the |(i, j) `In` IJ| premise (because as was shown in the last section, the statement is also true if |(i, j) `NotIn` IJ|), and add a premise saying |li| is a permutation of a contiguous sequence of indices.
 \begin{code}
   forall i j, i < j -> forall (li: list nat) (b: nat), Permutation [b ... b + length li - 1] li ->
@@ -652,8 +652,8 @@ monoid_expec (count (i, j)) (qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest)) 
 monoid_expec (count (i, j)) (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest))
   <= ecc i j.
 \end{code}
-All indices in the first filtered list denote elements that are less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that these indices are all less than |pivot|. And since |pivot < i|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons (using property 
-   (\ref{monoid_expec_zero_lem})  
+All indices in the first filtered list denote elements that are less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that these indices are all less than |pivot|. And since |pivot < i|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons (using the property 
+%%%(\ref{monoid_expec_IJ_lem}) 
 shown at the end of the previous section). Hence, the first |monoid_expec| term vanishes as well, leaving
 \begin{code}
 monoid_expec (count (i, j))
