@@ -655,7 +655,7 @@ We now compare |nth (sort l) i| with |nth (sort l) pivot|.
 \item If |nth (sort l) i < nth (sort l) pivot|, then we must have |i < pivot|, contradicting the assumption that |pivot < i|.
 \item If |nth (sort l) i > nth (sort l) pivot|, then we apply the induction hypothesis. For this, it must be shown that filtering the list of indices preserves contiguity, which follows from the fact that the indices share the order of the elements they denote in |sort l|.
 \end{itemize}
-This concludes the case where |i < pivot|. The case where |j < pivot| is symmetric. The other three cases use similar arguments.
+This concludes the case where |pivot < i|. The case where |j < pivot| is symmetric. The other three cases use similar arguments.
 
 The proof is now complete.
 
