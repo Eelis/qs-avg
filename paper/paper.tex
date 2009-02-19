@@ -375,7 +375,7 @@ The functions |nth| and |remove| select and remove the $n$th element of a list, 
 
 Note that the deterministic Quicksort definition in section \ref{embed} could also have been implemented with a |partition| pass instead, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasise that the properties the average-case proof demands of the algorithm rule out the na{\"\i}ve but familiar implementation using |filter| passes.
 
-Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and any deterministic |pick| operation, such as |head| or 'median-of-three' (not considered here).
+Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and any deterministic |pick| operation, such as |head| or `median-of-three' (not considered here).
 
 Let us now consider what kind of nondeterminism monad would be suitable for reasoning about the expected value of a nondeterministic program like
 \begin{code}
