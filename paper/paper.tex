@@ -146,7 +146,9 @@ First, it never actually justifies anything in terms of the algorithm's formal s
 Second, the original proof (implicitly) assumes that the input list does not contain any duplicate elements, which significantly simplifies its derivation of the formula for the expected comparison count for pairs of individual input list elements. We do not make this assumption.
   % todo: perhaps bring this up later.
 
-The key to giving a proper formal treatment of both of these aspects lies in the use of an appropriate representation of the algorithm, capable of capturing its computational behavior---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. The representation we use takes the form of a shallow monadic embedding, in which the algorithm is written as a monadically expressed functional program. This definition is then instantiated with refinements of operation-counting monads to make the comparison count observable.
+The key to giving a proper formal treatment of both of these aspects lies in the use of an appropriate representation of the algorithm, capable of capturing its computational behavior---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. 
+The appproach we take is to consider such operation-counting as a \emph{side effect}, and to use the general framework of \emph{monads} for representing side-effecting computation in pure functional languages. 
+The representation we use takes the form of a shallow monadic embedding, in which the algorithm, here Quicksort, is written as a monadically expressed functional program. This definition is then instantiated with refinements of operation-counting monads to make the comparison count observable.
 
 The embedding is introduced in section \ref{embed}, where we demonstrate its use by first giving a simple deterministic monadic Quicksort definition, and then instantiating it with a simple operation counting monad that lets us prove its quadratic worst-case complexity.
 
@@ -202,7 +204,7 @@ and freely use standard monadic functions such as:
  liftM: forall (M: Monad) (A B: Set), (A -> B) -> (M A -> M B)
  filterM: forall (M: Monad) (A: Set), (A -> M bool) -> list A -> M (list A)
 \end{code}
-|Monad| is a dependent record containing the (coercible) carrier of type |Set
+Here, the Coq type |Monad| is a dependent record containing the (coercible) carrier of type |Set
 -> Set|, along with the |bind| and |ret| operations, and proofs of the three monad laws. 
 % We make those uses observable by writing the algorithm as a monadically
 % expressed function, parameterizing it on both the monad itself and on the
@@ -226,9 +228,9 @@ itself and on the comparison operation. A deterministic Quicksort that simply se
     end.
 \end{code}
 
-We use Coq's |Program Fixpoint| facility \cite{subsetcoercions} to cope with Quicksort's non-structural recursion, specifying list length as an input measure function that is separately shown to strongly decrease for each recursive call. For |qs|, these proof obligations are trivial enough for Coq to prove mostly by itself.
+We use Coq's |Program Fixpoint| facility \cite{subsetcoercions} to cope with Quicksort's non-structural recursion, specifying list length as an input measure function that is separately shown to strongly decrease for each recursive call. For this definition of |qs|, these proof obligations are trivial enough for Coq to prove mostly by itself.
 
-For recursive functions defined this way, Coq does not automatically define corresponding induction principles matching the recursive call structure. Hence, for this |qs| definition as well as the one we will introduce in section \ref{nondetexpec}, we have defined these induction principles manually. To make their use as convenient as possible, we further customized and specialized them to take advantage of specific monad properties. We will ignore these issues in this paper, and will henceforth simply say: ``by induction on |qs|, ...''.
+For recursive functions defined this way, Coq does not automatically define corresponding induction principles matching the recursive call structure. Hence, for this |qs| definition as well as the one we will introduce in section \ref{nondetexpec}, we had to define these induction principles manually. To make their use as convenient as possible, we further customized and specialized them to take advantage of specific monad properties. We will omit further discussion of these issues in this paper, and will henceforth simply say: ``by induction on |qs|, ...''.
 
 By instantiating the above definitions with the right monad, we can transparently insert comparison-counting instrumentation into the algorithm, which will prove to be sufficient to let us reason about its complexity. But before we do so, let us note that if the above definitions are instead instantiated with the identity monad and an ordinary elementwise comparison on |T|, then the monadic scaffolding melts away, and the result is equivalent to an ordinary non-instrumented, non-monadic version, suitable for extraction and correctness proofs (which are included in the formalisation for completeness). This means that while we will instantiate the definitions with less trivial monads to support our complexity proofs, we can take some comfort in knowing that the object of those proofs is, in a very concrete sense, the actual Quicksort algorithm (as one would write it in a functional programming language), rather than some idealized model thereof.
 
@@ -289,7 +291,7 @@ Defining |cost| and |result| as the first and second projection, respectively, w
   which is true by elementary arithmetic. \qed
 \end{proof}
 
-We now expand the technique in preparation for the average-case complexity proof.
+We now extend the technique to prepare for the average-case complexity proof.
 
 \section{Nondeterminism and Expected Values}
 \label{nondetexpec}
@@ -313,8 +315,8 @@ common practice.
 
 These two modifications together greatly simplify the formalisation, because
 they remove the need to carefully track input distributions in order to show
-that nice inputs (for which the original deterministic version of the
-algorithm performs well) sufficiently outnumber bad inputs (for which the
+that `good' inputs (for which the original deterministic version of the
+algorithm performs well) sufficiently outnumber `bad' inputs (for which the
 original version performs poorly). They further ensure that the $O(n \log n)$
 average-case bound holds not just averaged over all possible input lists, but
 for each individual input list as well. In particular, it means that once we
@@ -369,16 +371,16 @@ Next, we redefine |qs| to use |partition|, and have it take as an additional par
 \end{code}
 The functions |nth| and |remove| select and remove the $n$th element of a list, respectively.
 
-Note that the deterministic Quicksort definition in section \ref{embed} could have been implemented with a |partition| pass as well, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasize that the properties the average-case proof demands of the algorithm rule out the na{\"\i}ve but familiar implementation using |filter| passes.
+Note that the deterministic Quicksort definition in section \ref{embed} could also have been implemented with a |partition| pass instead, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasize that the properties the average-case proof demands of the algorithm rule out the na{\"\i}ve but familiar implementation using |filter| passes.
 
-Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and a deterministic |pick| operation, like |head|.
+Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and any deterministic |pick| operation, such as |head| or 'median-of-three'.
 
 Let us now consider what kind of nondeterminism monad would be suitable for reasoning about the expected value of a nondeterministic program like
 \begin{code}
   x <- pick [0, 1]; if x = 0 then ret 0 else pick [1, 2].
 \end{code}
 When executed in the list monad (commonly used to emulate nondeterministic computation), this program
-produces |[0, 1, 2]| as its list of possible outcomes. Unfortunately, the information that 0 is a more likely outcome than 1 or 2, has been lost. Such relative probabilities are critical to the notion of an expected value: the expected value of the program above is |avg [0, avg [1, 2]] = {-"\frac{3}{4}"-} /= 1 = avg [0, 1, 2]|. This makes list nondeterminism unsuitable for our purposes.
+produces |[0, 1, 2]| as its list of possible outcomes. Unfortunately, the information that 0 is a more likely outcome than 1 or 2 has been lost. Such relative probabilities are critical to the notion of an expected value: the expected value of the program above is |avg [0, avg [1, 2]] = {-"\frac{3}{4}"-} /= 1 = avg [0, 1, 2]|. This makes list nondeterminism unsuitable for our purposes.
 
 Using tree nondeterminism instead solves the problem: we introduce the type |ne_tree| of non-empty trees, building on |ne_list|: 
 \begin{code}
@@ -494,7 +496,10 @@ Combined with the observation that the total expected comparison count ought to 
 \end{code}
 where $\Varid{IJ} := \{ (i, j) \in [0, |length l|) \mid i < j \}$, and |ecc i j := 2 / (1 + j - i)|.
 
-The right inequality is a strictly numerical affair, requiring a bit of analysis involving the harmonic series. As stated before, this part of the proof could be fairly directly transcribed from the paper proof, with few complications and additions, and so we will not discuss it.
+The right inequality is a strictly numerical affair, requiring a bit of analysis involving the harmonic series. As stated before, this part of the proof 
+    was 
+%%% could be 
+fairly directly transcribed from the paper proof, with few complications and additions, and so we will not discuss it.
 
 The left inequality is the challenging one. To bring it closer to the index summation, we first write |l| on the left side as |map (nth (sort l)) li|, where |sort| may be any sorting function (including |qs| itself), and where |li| is a permutation of |[0...n-1]| such that |map (nth (sort l)) li = l| (such an |li| can easily be proven to exist).
 
@@ -535,21 +540,24 @@ We now invoke another lemma which bounds a nondeterministically computed list's 
     (forall x `NotIn` q, expec (count x) t = 0) -> expec length t <= {-"\displaystyle{\sum_{\Varid{x} \in \Varid{q}}\Varid{fr}\ \Varid{x}}"-}.
 \end{code}
 We end up with two subgoals, the first of which is \begin{code}forall (i, j) `NotIn` IJ, expec (count (i, j)) (ne_tree.map fst (qs_U li)) = 0.\end{code} Rewriting this using identity \ref{expec_bind_lem} from section \ref{nondetexpec} in reverse, then rewriting the |expec| as a |monoid_expec|, and then generalizing the premise, results in
+%%% this needs a label!!! (\label{monoid_expec_zero_lem})
 \begin{code}
-  forall i j li, (i `NotIn` li \/ j `NotIn` li) -> monoid_expec (count (i, j)) (U.qs li) = 0,
+  forall i j li, (i `NotIn` li \/ j `NotIn` li) -> monoid_expec (count (i, j)) (U.qs li) = 0 
 \end{code}
 which can be shown by induction on |qs|, although we will not do so in this paper. We \emph{will} use this property again in the next section.
 
-The second subgoal, expressed with |monoid_expec|, reads
+The second subgoal, expressed with |monoid_expec|, becomes
+%%% this needs a label!!! (\label{monoid_expec_IJ_lem})
 \begin{code}
-  forall (i, j) `In` IJ, monoid_expec (count (i, j)) (qs_U li) <= ecc i j.
+  forall (i, j) `In` IJ, monoid_expec (count (i, j)) (qs_U li) <= ecc i j. 
 \end{code}
-This corresponds exactly to the property described at the beginning of this section. We prove it in the next section.
+which corresponds exactly to the property described at the beginning of this section. We prove it in the next section.
 
 \section{Finishing the Proof}
 \label{finishing}
 
-Again, the proof is by induction on |qs|. But to get a better induction hypothesis, we drop the |(i, j) `In` IJ| premise (because as was shown in the last section, the statement is also true if |(i, j) `NotIn` IJ|), and add a premise saying |li| is a permutation of a contiguous sequence of indices.
+Again, the proof %%% of (\ref{monoid_expec_IJ_lem}) 
+is by induction on |qs|. But to get a better induction hypothesis, we drop the |(i, j) `In` IJ| premise (because as was shown in the last section, the statement is also true if |(i, j) `NotIn` IJ|), and add a premise saying |li| is a permutation of a contiguous sequence of indices.
 \begin{code}
   forall i j, i < j -> forall (li: list nat) (b: nat), Permutation [b ... b + length li - 1] li ->
     monoid_expec (count (i, j)) (qs_U li) <= ecc i j.
@@ -644,7 +652,9 @@ monoid_expec (count (i, j)) (qs_U (filter ((= Lt) fcmp lookup_cmp pivot) rest)) 
 monoid_expec (count (i, j)) (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest))
   <= ecc i j.
 \end{code}
-All indices in the first filtered list denote elements that are less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that these indices are all less than |pivot|. And since |pivot < i|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons (using the property shown at the end of the previous section). Hence, the first |monoid_expec| term vanishes as well, leaving
+All indices in the first filtered list denote elements that are less than the element denoted by the pivot. Since the former precede the latter in |sort l|, it must be the case that these indices are all less than |pivot|. And since |pivot < i|, it follows that the first |qs_U| term will produce no |(i, j)| comparisons (using the property 
+%%%(\ref{monoid_expec_IJ_lem}) 
+shown at the end of the previous section). Hence, the first |monoid_expec| term vanishes as well, leaving
 \begin{code}
 monoid_expec (count (i, j))
   (qs_U (filter ((= Gt) fcmp lookup_cmp pivot) rest)) <= ecc i j.
@@ -673,7 +683,9 @@ The formalised development successfully adopted from the original proof the idea
 
 The shallow monadic embedding provides a simple but effective representation of the algorithm. Being parameterized on the monad used, it allows a single definition to be instantiated either with basic monads (like the identity monad or bare nondeterminism monads) to get a non-instrumented version suitable for extraction and correctness proofs, or with |MMT|-transformed monads to support complexity proofs. Furthermore, since the shallowness of the embedding lets us re-use all standard Coq data types and facilities, including the powerful |Program Fixpoint| command, the actual algorithm definition itself is reasonably clean.
 
-We have shown that it is straightforward to give a fully formal treatment in type theory of a classical result in complexity theory. This clearly shows the utility and applicability of the general monadic framework for worst- and average-case complexity that we have developed. 
+We have shown that it is straightforward to give a fully formal treatment in type theory of a classical result in complexity theory. This clearly shows the utility and applicability of the general monadic 
+%%%framework for 
+approach to worst- and average-case complexity that we have developed. 
 
 \bibliographystyle{plain}
 \addcontentsline{toc}{chapter}{Bibliography}
