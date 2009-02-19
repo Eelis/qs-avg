@@ -146,8 +146,8 @@ First, it never actually justifies anything in terms of the algorithm's formal s
 Second, the original proof (implicitly) assumes that the input list does not contain any duplicate elements, which significantly simplifies its derivation of the formula for the expected comparison count for pairs of individual input list elements. We take care to avoid appeals to such an assumption.
   % todo: perhaps bring this up later.
 
-The key to giving a proper formal treatment of both these aspects lies in using an appropriate representation of the algorithm, capable of capturing its computational behavior---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. 
-The appproach we take is to consider such operation-counting as a \emph{side effect}, and to use the general framework of \emph{monads} for representing side-effecting computation in pure functional languages. 
+The key to giving a proper formal treatment of both these aspects lies in using an appropriate representation of the algorithm, capable of capturing its computational behaviour---specifically, its use of comparisons---in a way suitable for subsequent formal reasoning. 
+The approach we take is to consider such operation-counting as a \emph{side effect}, and to use the general framework of \emph{monads} for representing side-effecting computation in pure functional languages. 
 Accordingly we use a shallow embedding, in which the algorithm, here Quicksort, is written as a monadically expressed functional program in Coq. This definition is then instantiated with refinements of operation-counting monads to make the comparison count observable.
 
 The embedding is introduced in section \ref{embed}, where we demonstrate its use by first giving a simple deterministic monadic Quicksort definition, and then instantiating it with a simple operation counting monad that lets us prove its quadratic worst-case complexity.
@@ -156,7 +156,7 @@ For the purposes of the more complex average-case theorem, we then give (in sect
 
 The next two sections detail the actual formalised proof. Section \ref{reduction} corresponds to the first part in the original proof described above, showing how the main theorem can be split into a lemma (stated in terms of another specialized monad) giving a formula for the expected comparison count for individual pairs of input elements, and a strictly numerical part. Since we were able to fairly directly transcribe the latter from the paper proof, using the existing real number theory in the Coq standard library with few complications and additions, we omit discussion of it here and refer the interested reader to the paper proof.
 
-Section \ref{finishing} finishes the proof by proving the lemma about the expected comparison count for individual input list elements. Since this is the part where the original proof omits the most detail, and makes the assumption regarding duplicate elements, and where we really have to reason in detail about the behavior of the algorithm, it is by far the most involved part of the formalisation.
+Section \ref{finishing} finishes the proof by proving the lemma about the expected comparison count for individual input list elements. Since this is the part where the original proof omits the most detail, and makes the assumption regarding duplicate elements, and where we really have to reason in detail about the behaviour of the algorithm, it is by far the most involved part of the formalisation.
 
 Section \ref{conclusion} ends with conclusions and final remarks.
 
@@ -373,7 +373,7 @@ Next, we redefine |qs| to use |partition|, and have it take as an additional par
 \end{code}
 The functions |nth| and |remove| select and remove the $n$th element of a list, respectively.
 
-Note that the deterministic Quicksort definition in section \ref{embed} could also have been implemented with a |partition| pass instead, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasize that the properties the average-case proof demands of the algorithm rule out the na{\"\i}ve but familiar implementation using |filter| passes.
+Note that the deterministic Quicksort definition in section \ref{embed} could also have been implemented with a |partition| pass instead, which might well have made the worst-case proof even simpler. We chose not to do this, in order to emphasise that the properties the average-case proof demands of the algorithm rule out the na{\"\i}ve but familiar implementation using |filter| passes.
 
 Nondeterminism can now be emulated by instantiating these definitions with a suitable monad and |pick| operation. A deterministic, non-instrumented version can still be obtained, simply by using the identity monad and any deterministic |pick| operation, such as |head| or 'median-of-three' (not considered here).
 
@@ -710,3 +710,11 @@ we have developed.
 \bibliography{paper}
 
 \end{document}
+
+% LocalWords:  Nijmegen GL Quicksort Coq todo monadically Hurd Audebaud Paulin
+% LocalWords:  Mohring na ve Coq's pCIC ret Haskell's liftM forall filterM bool
+% LocalWords:  parameterizing le gt negb Fixpoint qs Quicksort's customized MMT
+% LocalWords:  specialized elementwise idealized monoid fcmp ab snd mult fst SP
+% LocalWords:  nat NatAddMonoid IdMonad Eval infixbind sqrd flt Eq cmp const ne
+% LocalWords:  upp avg ary expec NDP MonoidMonadTrans NeTreeMonad bigO INR ceil
+% LocalWords:  IJ ecc li fr NotIn generalizing ca cb foo parameterized
