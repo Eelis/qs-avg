@@ -378,6 +378,7 @@ Section mon_nondet.
   Next Obligation.
     simpl.
     replace (length t) with (length (vec.remove (h :: t) i)).
+      simpl.
       rewrite <- (Permutation_length H).
       repeat rewrite app_length.
       omega.
@@ -388,6 +389,7 @@ Section mon_nondet.
   Next Obligation.
     simpl.
     replace (length t) with (length (vec.remove (h :: t) i)).
+      simpl.
       rewrite <- (Permutation_length H).
       repeat rewrite app_length.
       omega.

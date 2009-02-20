@@ -10,13 +10,13 @@ Record Monad: Type :=
   ; bind: forall a b, mon a -> (a -> mon b) -> mon b
   ; ret: forall (a: Set), a -> mon a
   (* Laws: *)
-  ; mon_lunit: forall (a b: Set) (x: a) (f: a -> mon b), bind _ _ (ret _ x) f = f x
+  ; mon_lunit: forall (a b: Set) (x: a) (f: a -> mon b), bind (ret x) f = f x
       (* (return x >>= f) = (f x) *)
-  ; mon_runit: forall (a: Set) (f: mon a), bind a a f (ret a) = f
+  ; mon_runit: forall (a: Set) (f: mon a), bind f (@ret a) = f
       (* (f >>= return) = f *)
   ; mon_assoc: forall a b c (n: mon a) (f: a -> mon b) (g: b -> mon c),
-      bind _ _ (bind _ _ n f) g =
-      bind _ _ n (fun x => bind _ _ (f x) g)
+      bind (bind n f) g =
+      bind n (fun x => bind (f x) g)
       (* ((n >>= f) >>= g) = n >>= (\x -> f x >>= g) *)
   }.
 
@@ -33,10 +33,10 @@ Record Functor: Type :=
   { func: Set -> Set
   ; func_map: forall (a b: Set) (f: a -> b), func a -> func b
   (* Laws: *)
-  ; func_id: forall (X: Set), func_map _ _ (fun (x: X) => x) = (fun (x: func X) => x)
+  ; func_id: forall (X: Set), func_map (fun (x: X) => x) = (fun (x: func X) => x)
         (* (id .) = id *)
   ; func_assoc: forall (a b c: Set) (x: func a) (f: b -> c) (g: a -> b),
-      func_map _ _ (f ∘ g) x = func_map _ _ f (func_map _ _ g x)
+      func_map (f ∘ g) x = func_map f (func_map g x)
         (* (f . g) . x = f . (g . x) *)
   }.
 
@@ -199,5 +199,5 @@ Implicit Arguments liftM [A B M].
 
 Record MonadTrans: Type :=
   { transMonad: forall (m: Monad), extMonad m -> Monad
-  ; lift: forall (m: Monad) (e: extMonad m) (A: Set), m A -> transMonad m e A
+  ; lift: forall (m: Monad) (e: extMonad m) (A: Set), m A -> transMonad e A
   }.
