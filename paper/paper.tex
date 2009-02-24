@@ -425,7 +425,6 @@ To denote the expected value of a discrete measure |f| of the output of a progra
 Thus, given a program |P| of type |M_ne_tree (list bool)|, |expec length P| denotes the expected length of the result list, if we interpret values of type |M_ne_tree T| as nondeterministically computed values of type |T|.
 
 The function |expec| gives rise to a host of identities, such as
-
 \begin{align}
   0 &\le |expec f t| \nonumber \\
   |expec (fun x => f x + g x) t| &= |expec f t + expec g t| \nonumber \\
