@@ -500,12 +500,12 @@ Combined with the observation that the total expected comparison count ought to 
 \end{code}
 where $\Varid{IJ} := \{ (i, j) \in [0, |length l|) \mid i < j \}$, and |ecc i j := 2 / (1 + j - i)|.
 
-The right inequality is a strictly numerical affair, requiring a bit of analysis involving the harmonic series. As stated before, this part of the proof 
+The right-hand inequality is a strictly numerical affair, requiring a bit of analysis involving the harmonic series. As stated before, this part of the proof 
     was 
 %%% could be 
 fairly directly transcribed from the paper proof, with few complications and additions, and so we will not discuss it.
 
-The left inequality is the challenging one. To bring it closer to the index summation, we first write |l| on the left side as |map (nth (sort l)) li|, where |sort| may be any sorting function (including |qs| itself), and where |li| is a permutation of |[0...n-1]| such that |map (nth (sort l)) li = l| (such an |li| can easily be proven to exist).
+The left inequality is the challenging one. To bring it closer to the index summation, we first write |l| on the left-hand side as |map (nth (sort l)) li|, where |sort| may be any sorting function (including |qs| itself), and where |li| is a permutation of |[0...n-1]| such that |map (nth (sort l)) li = l| (such an |li| can easily be proven to exist).
 
 Next, we introduce a specialized monad and comparison operation that go one step further in focusing specifically on these indices.
 \begin{code}
@@ -568,7 +568,7 @@ is by induction on |qs|. But to get a better induction hypothesis, we drop the |
   forall i j, i < j -> forall (li: list nat) (b: nat), Permutation [b ... b + length li - 1] li ->
     monoid_expec (count (i, j)) (qs_U li) <= ecc i j.
 \end{code}
-In the base case, |li| is |nil|, and the left side of the inequality reduces to 0. In the recursive case, |qs| unfolds:
+In the base case, |li| is |nil|, and the left-hand side of the inequality reduces to 0. In the recursive case, |qs| unfolds:
 \begin{code}
 monoid_expec (count (i, j)) (
     pi <- pick [0 ... n-1];
@@ -599,7 +599,7 @@ avg (map (monoid_expec (count (i, j)) fcmp (fun pi =>
 \end{code}
 Here, |map_fst| applies a function to a pair's first component.
 
-We now distinguish between five different cases that can occur for the nondeterministically picked |pivot| (which, because we are in the |U| monad, is an index). It can either be less than |i|, equal to |i|, between |i| and |j|, equal to |j|, or greater than |j|. Each case occurs a certain number of times, and has an associated expected number of |(i, j)| comparisons (coming either from the |map_fst| term representing the |partition| pass, or from the two recursive |qs_U| calls). To represent this split, we first rewrite the right side of the inequality to\[\frac{\Varid{ecc}\ i\ j * (i - b) + 1 + 0 + 1 + \Varid{ecc}\ i\ j * (b + n - j)}{n}\ .\]
+We now distinguish between five different cases that can occur for the nondeterministically picked |pivot| (which, because we are in the |U| monad, is an index). It can either be less than |i|, equal to |i|, between |i| and |j|, equal to |j|, or greater than |j|. Each case occurs a certain number of times, and has an associated expected number of |(i, j)| comparisons (coming either from the |map_fst| term representing the |partition| pass, or from the two recursive |qs_U| calls). To represent this split, we first rewrite the right-hand side of the inequality to\[\frac{\Varid{ecc}\ i\ j * (i - b) + 1 + 0 + 1 + \Varid{ecc}\ i\ j * (b + n - j)}{n}\ .\]
 This form reflects the facts that
 \begin{itemize}
 \item the case where |pivot| is less than |i| occurs |i - b| times, and in each instance, the expected number of |(i, j)| comparisons is no more than |ecc i j|;
@@ -608,7 +608,7 @@ This form reflects the facts that
 \item the case where the |pivot| is equal to |j| occurs once, and in this case no more than a single |(i, j)| comparison is expected;
 \item the case where the |pivot| is greater than |j| occurs |b + n - j| times, and in each instance, the expected number of |(i, j)| comparisons is no more than |ecc i j|.
 \end{itemize}
-With the right side of the inequality in this form, we unfold the |avg| application on the left into |sum (...) / n|, and then cancel the division by |n| on both sides. Next, to actually realize the split, we apply a specialized lemma stating that
+With the right-hand side of the inequality in this form, we unfold the |avg| application on the left into |sum (...) / n|, and then cancel the division by |n| on both sides. Next, to actually realize the split, we apply a specialized lemma stating that
 \begin{code}
    forall b i j X f n (li: list nat)
      (g: [0...n-1] -> U X), Permutation [b ... b + length li - 1] li ->
