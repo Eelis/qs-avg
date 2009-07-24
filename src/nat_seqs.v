@@ -103,3 +103,43 @@ Proof with auto.
   simpl.
   rewrite app_nil_r...
 Qed.
+
+Lemma nats_Sb w b: nats (S b) w = map S (nats b w).
+Proof with auto.
+  induction w...
+  simpl.
+  intros.
+  rewrite IHw...
+Qed.
+
+Require Import Relations.
+Require vec.
+
+Lemma filtered_sort (T: Set) (R: relation T) (P: preorder T R) (p: T -> T -> bool) (pc: forall x y, p y x = true -> ~ R y x) (l: list T): vec.sorted R l ->
+  elemsR le (map (fun x => length (filter (p (fst x)) (snd x))) (splits l)) (nats 0 (length l)).
+Proof with auto.
+  induction l.
+    simpl...
+  intro.
+  pose proof (IHl (vec.sorted_tail H)). clear IHl.
+  simpl.
+  apply eR_cons.
+    rewrite (fst (conj_prod (list_utils.filter_none _ l)))...
+    intros.
+    unfold flip.
+    pose proof (pc x a).
+    destruct (p a x)...
+    elimtype False.
+    apply H2...
+    apply (vec.sorted_cons_inv' P H x).
+    rewrite vec.list_round_trip...
+  rewrite map_map.
+  simpl.
+  apply elemsR_le_S in H0.
+  rewrite nats_Sb.
+  transitivity (map S (map (fun x => length (filter (p (fst x)) (snd x))) (splits l)))...
+  rewrite map_map.
+  apply elemsR_map_map.
+  intros.
+  destruct (p (fst x))...
+Qed.

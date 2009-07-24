@@ -19,21 +19,100 @@ Require Import Arith.
 Require Import Omega.
 Require Import arith_lems.
 Require Import list_utils.
+Require Import Morphisms.
+Require vec.
 
 Definition numbers := 3 :: 2 :: 5 :: 9 :: 7 :: 6 :: 1 :: 0 :: 4 :: 8 :: nil.
+
+Require Import Bvector.
+
+Hint Constructors vec.sorted.
+
+Lemma vec_sorted_impl (X: Set) (P Q: relation X): (forall x y, P x y -> Q x y) ->
+  forall n (l: vector X n), vec.sorted P l -> vec.sorted Q l.
+Proof. induction 2; auto. Qed.
 
 Module plain.
 Section plain.
 
   Variables (T: Set) (le: T -> T -> bool).
 
-  Fixpoint insert (l: list T) (x: T): list T :=
+  Let R (x y: T): Prop := le x y = true.
+
+  Fixpoint insert (x: T) (l: list T): list T :=
     match l with
     | nil => x :: nil
-    | h :: t => if le x h then x :: h :: t else h :: insert t x
+    | h :: t => if le x h then x :: h :: t else h :: insert x t
     end.
 
-  Definition isort: list T -> list T := fold_left insert nil.
+  Lemma insert_perm x l: Permutation (insert x l) (x :: l).
+  Proof with eauto.
+    induction l...
+    simpl.
+    destruct (le x a)...
+  Qed.
+
+  Instance insert_perm_mor: Morphism (eq ==> Permutation ==> Permutation) insert.
+  Proof with eauto.
+    repeat intro.
+    induction H0; subst; simpl...
+      destruct (le y x0)...
+    destruct (le y y0); destruct (le y x0)...
+  Qed.
+
+  Hypotheses
+    (le_yippee: forall x y, le x y = false -> le y x = true)
+    (preorder_R: preorder _ R).
+
+  Lemma inserted_ordered x (l: list T): vec.sorted R l -> vec.sorted R (insert x l).
+  Proof with auto.
+    induction l.
+      simpl.
+      intros.
+      apply vec.sorted_one.
+    intros.
+    pose proof (vec.sorted_tail H).
+    apply IHl in H0.
+    simpl.
+    case_eq (le x a); intro.
+      simpl.
+      apply vec.sorted_more...
+    simpl.
+    apply vec.sorted_cons'...
+    pose proof (le_yippee H1).
+    intros.
+    rewrite vec.list_round_trip in H3.
+    unfold R.
+    destruct (Permutation_in _ (insert_perm x l) H3).
+      subst...
+    simpl in H.
+    apply (vec.sorted_cons_inv' preorder_R H).
+    rewrite vec.list_round_trip...
+  Qed.
+
+  Definition isort: list T -> list T := fold_right insert nil.
+
+  Lemma isort_permutes l: Permutation (isort l) l.
+  Proof with auto.
+    induction l...
+    simpl.
+    rewrite IHl.
+    apply insert_perm.
+  Qed.
+
+  Hint Constructors vec.sorted.
+
+  Lemma isort_sorts l: vec.sorted R (isort l).
+  Proof with auto.
+    induction l; simpl...
+    apply inserted_ordered...
+  Qed.
+
+  Lemma isort_sorts' (U: relation T): (forall x y, le x y = true -> U x y) -> forall l, vec.sorted U (isort l).
+    intros.
+    apply (vec_sorted_impl _ H).
+    apply isort_sorts.
+  Qed.
 
 End plain.
 End plain.
@@ -156,7 +235,7 @@ Section quadratic.
     deep_le_trans (IHx (result (insert _ mle y h)))...
     clear IHx.
     rewrite insert_length...
-    simpl length.
+    simpl @length.
     simpl mult.
     rewrite <- mult_n_Sm.
     apply le_trans with ((length y * length t + length y) + (length t + div2 (sqrd (length t))))...

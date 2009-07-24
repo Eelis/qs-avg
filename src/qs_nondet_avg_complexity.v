@@ -10,62 +10,6 @@ Require Import Fourier.
 Require Import list_utils.
 Require Import nat_below.
 
-Lemma harmonic_upper_bound n: RsumOver (nats 1 n) (Rinv ∘ INR) <= INR (S (log2ceil n)).
-Proof with auto with real.
-  intros.
-  rewrite S_INR.
-  rewrite Rplus_comm.
-  apply Rle_trans with (RsumOver (nats 1 (pow 2 (log2ceil n))) (Rinv ∘ INR)).
-    apply RsumOver_nats_le.
-      destruct n...
-      unfold log2ceil.
-      apply pow2_ceil_log2.
-    intros.
-    destruct q.
-      inversion H.
-    unfold compose...
-  rewrite split_pow2_range.
-  rewrite RsumOver_cons.
-  rewrite RsumOver_concat_map.
-  unfold compose.
-  simpl INR.
-  rewrite Rinv_1...
-  apply Rplus_le_compat_l.
-  replace (INR (log2ceil n)) with (INR (length (nats 0 (log2ceil n))) * 1).
-    Focus 2.
-    rewrite nats_length.
-    apply Rmult_1_r.
-  apply RsumOver_constant_le.
-  intros.
-  rewrite RsumOver_nats.
-  apply Rle_eq_trans with (RsumOver (nats 0 (pow 2 x)) (fun _ => / INR (pow 2 x))).
-    apply RsumOver_le.
-    intros.
-    unfold compose. simpl.
-    rewrite <- plus_assoc.
-    rewrite plus_comm.
-    simpl plus.
-    apply Rle_Rinv...
-      apply lt_INR_0.
-      apply pow_min...
-    apply le_INR.
-    omega.
-  unfold RsumOver.
-  rewrite Rsum_constant with (/ INR (pow 2 x)) (map (fun _ => / INR (pow 2 x)) (nats 0 (pow 2 x))).
-    rewrite map_length.
-    rewrite nats_length.
-    apply Rinv_r.
-    apply not_O_INR.
-    intro.
-    assert ((2 <> 0)%nat)...
-    cset (pow_min H1 x).
-    rewrite H0 in H2.
-    apply (lt_irrefl _ H2).
-  intros.
-  destruct (In_map_inv H0).
-  destruct H1...
-Qed.
-
 Require Import indices.
 
 Definition ijs (n: nat): list (nat * nat) :=
@@ -115,13 +59,15 @@ Proof with auto with real.
   rewrite map_map...
 Qed.
 
+Require harmonic.
+
 Lemma sumOver_ijs_bound n:
   RsumOver (ijs n) (fun ij => 2 / INR (S (snd ij - fst ij))) <= 2 * INR n * INR (S (log2ceil n)).
 Proof with auto with real.
   intro.
   rewrite expand_sumOver_ijs.
   simpl snd.
-  simpl fst.
+  simpl @fst.
   apply Rle_trans with (RsumOver (nats 0 n) (fun _ => 2 * INR (S (log2ceil n)))).
     apply RsumOver_le.
     intros.
@@ -147,7 +93,7 @@ Proof with auto with real.
         inversion H0.
       unfold compose.
       apply O_le_inv_INR_S.
-    apply harmonic_upper_bound.
+    apply harmonic.upper_bound.
   fold (compose (Rmult 2) (fun _: nat => INR (S (log2ceil n)))).
   rewrite <- RsumOver_mult_constant.
   rewrite Rmult_assoc.

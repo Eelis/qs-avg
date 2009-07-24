@@ -37,6 +37,18 @@ Section contents.
 
   Definition selectPivotPart n (t: vector X (S n)) := pick (ne_list.from_vec (vec.nats 0 (S n))) >>= partitionPart t.
 
+  Lemma selectPivotPart_eq n m (t: vector X (S n)) (t': vector X (S m)): vec.to_list t = vec.to_list t' ->
+    selectPivotPart t = selectPivotPart t'.
+  Proof with auto.
+    intros.
+    pose proof (vec.length t).
+    rewrite H in H0.
+    rewrite vec.length in H0.
+    inversion H0.
+    subst. clear H0.
+    rewrite (vec.eq_as_lists t t')...
+  Qed.
+
   Definition body n (v: vector X n) :=
     match v with
     | Vnil => ret nil
@@ -128,6 +140,28 @@ Section contents.
     intros.
     unfold qs. fold raw_body.
     rewrite H0...
+  Qed.
+
+  Lemma rect_using_lists (Q: list X -> M (list X) -> Type):
+    (Q nil (ret nil)) ->
+    (forall h t, (forall y, length y <= length t -> Q y (qs cmp pick y)) -> Q (h::t) (selectPivotPart (h::t))) ->
+      forall x, Q x (qs cmp pick x).
+  Proof with auto with arith.
+    intros.
+    apply rect...
+    intros.
+    simpl in X1.
+    rewrite (vec.eq_cons v).
+    simpl.
+    assert (forall y : list X, length y <= length (vec.to_list (vec.tail v)) -> Q y (qs cmp pick y)).
+      intros.
+      apply X2.
+      rewrite vec.length in H...
+    pose proof (X1 (vec.head v) (vec.tail v) X3).
+    pose proof (selectPivotPart_eq (Vcons (vec.head v) (vec.from_list (vec.to_list (vec.tail v)))) (Vcons (vec.head v) (vec.tail v))).
+    rewrite <- H...
+    simpl.
+    rewrite vec.list_round_trip...
   Qed.
 
 End contents.

@@ -30,7 +30,7 @@ Section contents.
 
   Definition Index := natBelow (length ol).
 
-  Definition subscript: Index -> T := vec.nth (vec.insertion_sort (Ele T) (Ele_le_dec T) ol).
+  Definition subscript: Index -> T := vec.nth (vec.insertion_sort (@Ele T) (@Ele_le_dec T) ol).
 
   Definition UE: E :=
     Build_E (fun x y: Index => Ecmp T (subscript x) (subscript y))
@@ -50,7 +50,7 @@ Section contents.
     unfold UE. simpl.
     unfold subscript.
     intros.
-    apply (vec.sorted_lt_values_lt_indices (EO T) (vec.insertion_sort_sorts (Ele T) (Ele_le_dec T) ol)).
+    apply (vec.sorted_lt_values_lt_indices (@EO T) (vec.insertion_sort_sorts (@Ele T) (@Ele_le_dec T) ol)).
     unfold vec.Xlt.
     unfold Ele in *.
     rewrite H.
@@ -61,7 +61,7 @@ Section contents.
     intro. discriminate.
   Qed.
 
-  Lemma IndicesCorrect_inv (x y: Index): x < y -> Ele UE x y.
+  Lemma IndicesCorrect_inv (x y: Index): x < y -> @Ele UE x y.
   Proof with try assumption.
     repeat intro.
     apply lt_asym with (nb_val x) (nb_val y)...
@@ -198,7 +198,7 @@ Section contents.
 
   Hint Resolve in_map.
 
-  Lemma IndexSeq_base_lowest_value' (b: Index) l: IndexSeq b l -> forall e, In e l -> Ele UE b e.
+  Lemma IndexSeq_base_lowest_value' (b: Index) l: IndexSeq b l -> forall e, In e l -> @Ele UE b e.
   Proof with auto.
     unfold UE. unfold Ele. simpl.
     intros.
@@ -231,7 +231,7 @@ Section contents.
   Lemma indices: exists tl, ol = map subscript tl /\ IndexSeq 0 tl.
   Proof with auto.
     intros.
-    destruct (vec.Permutation_mapping (vec.perm_sym (vec.insertion_sort_permutes (Ele T) (Ele_le_dec T) ol))).
+    destruct (vec.Permutation_mapping (vec.perm_sym (vec.insertion_sort_permutes (@Ele T) (@Ele_le_dec T) ol))).
     destruct H.
     exists (vec.to_list x).
     split.
@@ -281,6 +281,7 @@ Section contents.
     apply IndexSeq_perm with (filter (fun f => unsum_bool (cmp_cmp (Ecmp T (subscript f) (subscript e)) Lt)) (x0 :: x))...
       Focus 2.
       apply filter_perm.
+      repeat intro...
       apply Permutation_sym...
     assert (In x0 (x0 :: x)).
       left...
@@ -341,9 +342,10 @@ Section contents.
       unfold IndexSeq_above.
       intro.
       rewrite length_filter in *.
-      rewrite (count_perm H3).
+      rewrite <- (count_perm_simple _ H3).
       apply IndexSeq_perm with (filter (fun f: Index => unsum_bool (cmp_cmp (Ecmp T (subscript f) (subscript e)) Gt)) (x0 :: x))...
       apply filter_perm.
+        repeat intro...
       apply Permutation_sym...
     simpl filter.
     replace n with (length x) in *.
@@ -364,7 +366,7 @@ Section contents.
       apply IndexSeq_cons_inv.
       apply IndexSeq_perm with l...
     rewrite filter_all.
-      simpl length.
+      simpl @length.
       rewrite plus_comm.
       rewrite minus_plus.
       apply IndexSeq_perm with l...
@@ -379,7 +381,7 @@ Section contents.
       right...
     cset (IndexSeq_base_lowest_value' x0 H0 x1 H7).
     unfold Ele, UE in H8. simpl in H8.
-    fold (Ele T (subscript x0) (subscript x1)) in H8.
+    fold (@Ele T (subscript x0) (subscript x1)) in H8.
     symmetry.
     apply Ecmp_lt_le_trans with (subscript x0)...
     rewrite Ecmp_sym.

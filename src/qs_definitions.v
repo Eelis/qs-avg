@@ -251,7 +251,7 @@ Section mon_det. (* For variable discharging. *)
     simpl.
     rewrite mon_assoc. rewrite mon_assoc.
     apply e. intro.
-    simpl length in H.
+    simpl @length in H.
     rewrite (H (proj1_sig x) (qs_obligation_1 g (refl_equal (t :: x0)) x) (qs_obligation_1 h (refl_equal (t :: x0)) x)).
     apply e. intro.
     do 2 rewrite mon_assoc.
@@ -346,7 +346,39 @@ Eval vm_compute in (mon_det.pqs counted_leb numbers).
 (*Definition ex_qs: list nat -> list nat := monadic.qs plain_leb.*)
 (*Extraction "extracted" ex_qs.*)
 
-Module mon_nondet. (* version used for average case proof *)
+Module mon_det_partition. (* monadic deterministic with partition instead of filter. used for det avg case proof *)
+Section mon_det_partition.
+
+  Variables (T: Set) (M: Monad) (cmp: T -> T -> M comparison).
+
+  Fixpoint partition (pivot: T) (l: list T) :
+      M { p: Partitioning T | Permutation (p Eq ++ p Lt ++ p Gt) l } :=
+        (* can't include a nice ordered-ness spec here, because we only have monadic cmp *)
+    match l return M { p: Partitioning T | Permutation (p Eq ++ p Lt ++ p Gt) l } with
+    | nil => ret (@emp T)
+    | h :: t =>
+        b <- cmp h pivot;
+        tt <- partition pivot t ;
+        ret (addToPartitioning b h tt)
+    end.
+
+  Program Fixpoint qs (l: list T) {measure length l}: M (list T) :=
+    match l with
+    | nil => ret nil
+    | h :: t =>
+        part <- partition h t;
+        low <- qs (part Lt);
+        upp <- qs (part Gt);
+        ret (low ++ h :: part Eq ++ upp)
+    end.
+
+  Next Obligation. simpl. rewrite <- H. repeat rewrite app_length. omega. Qed.
+  Next Obligation. simpl. rewrite <- H. repeat rewrite app_length. omega. Qed.
+
+End mon_det_partition.
+End mon_det_partition.
+
+Module mon_nondet. (* version used for nondet average case proof *)
 Section mon_nondet.
 
   Variables (T: Set) (M: Monad) (cmp: T -> T -> M comparison).
@@ -379,7 +411,7 @@ Section mon_nondet.
     simpl.
     replace (length t) with (length (vec.remove (h :: t) i)).
       simpl.
-      rewrite <- (Permutation_length H).
+      rewrite <- H.
       repeat rewrite app_length.
       omega.
     rewrite vec.length.
@@ -390,7 +422,7 @@ Section mon_nondet.
     simpl.
     replace (length t) with (length (vec.remove (h :: t) i)).
       simpl.
-      rewrite <- (Permutation_length H).
+      rewrite <- H.
       repeat rewrite app_length.
       omega.
     rewrite vec.length.

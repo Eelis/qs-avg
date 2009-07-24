@@ -1,13 +1,9 @@
 
 Set Implicit Arguments.
 
-Require Import util.
-Require Import List.
-Require Import Plus.
-Require Import Arith.
-Require Import arith_lems.
-Require Import nat_seqs.
-Require Import list_utils.
+Require Import
+  Plus List Arith Relations RelationClasses Morphisms
+  arith_lems util list_utils nat_seqs.
 
 (* sum *)
 
@@ -50,7 +46,7 @@ Proof with auto.
   rewrite IHl...
 Qed.
 
-Lemma Rsum_Permutation (x y: list R): Permutation x y -> Rsum x = Rsum y.
+Instance Rsum_Permutation: Morphism (Permutation ==> eq) Rsum.
 Proof with auto.
   intros x y p.
   induction p...
@@ -76,7 +72,7 @@ Proof with auto.
     simpl.
     field.
   simpl Rsum.
-  simpl length.
+  simpl @length.
   rewrite IHl.
     rewrite (H a).
       rewrite S_INR.
@@ -90,7 +86,7 @@ Qed.
 Lemma Rsum_le l r: (forall x, In x l -> x <= r) -> Rsum l <= INR (length l) * r.
 Proof with auto with real.
   induction l...
-  simpl length.
+  simpl @length.
   intros.
   simpl Rsum.
   apply Rle_trans with (a + INR (length l) * r).
@@ -102,7 +98,7 @@ Proof with auto with real.
   apply Rle_trans with (r + INR (length l) * r).
     apply Rplus_le_compat_r.
     firstorder.
-  simpl length.
+  simpl @length.
   rewrite S_INR.
   rewrite Rmult_plus_distr_r.
   rewrite Rmult_1_l...
@@ -113,7 +109,7 @@ Proof with auto with real.
   induction l; intros.
     simpl.
     rewrite Rmult_0_l...
-  simpl length.
+  simpl @length.
   simpl Rsum.
   rewrite S_INR.
   rewrite Rmult_plus_distr_r.
@@ -127,6 +123,72 @@ Proof with auto with real.
   apply H.
   right...
 Qed.
+
+Lemma Rsum_map_plus X f g (l: list X):
+  Rsum (map (fun x => f x + g x) l) =
+  Rsum (map f l) + Rsum (map g l).
+Proof with try field.
+  induction l; simpl...
+  rewrite IHl...
+Qed.
+
+Lemma Rsum_map_app_map X Y f g (h: X -> Y) (l: list X):
+  Rsum (map f (map g l ++ map h l)) = Rsum (map (fun x => f (g x) + f (h x)) l).
+Proof with auto with real.
+  intros.
+  rewrite map_app.
+  rewrite Rsum_app.
+  rewrite Rsum_map_plus.
+  do 2 rewrite map_map.
+  reflexivity.
+Qed.
+
+Instance elemsR_le_Rsum: Morphism (elemsR Rle ==> Rle) Rsum.
+Proof with auto with real.
+  repeat intro.
+  induction H...
+  simpl...
+Qed.
+
+Lemma Rsum_map_le X f g (l: list X): (forall x, In x l -> f x <= g x) -> Rsum (map f l) <= Rsum (map g l).
+Proof. intros. apply elemsR_le_Rsum, elemsR_map_map. assumption. Qed.
+
+Lemma Rsum_map_mult c l: Rsum (map (Rmult c) l) = c * Rsum l.
+Proof with auto with real.
+  induction l... simpl. rewrite IHl. field.
+Qed.
+
+Lemma Rsum_repeat n: ext_eq (Rsum ∘ repeat n) (Rmult (INR n)).
+Proof with field.
+  unfold ext_eq, Basics.compose.
+  induction n; intros.
+    simpl...
+  simpl Rsum.
+  rewrite S_INR.
+  rewrite IHn...
+Qed.
+
+Lemma Rsum_concat l: Rsum (concat l) = Rsum (map Rsum l).
+Proof with auto with real.
+  induction l...
+  simpl.
+  rewrite Rsum_app.
+  congruence.
+Qed.
+
+(* Things like the three lemmas above are more elegantly stated as extensional equalities on
+function compositions, but stated that way they cannot be easily rewritten with.. *)
+
+Lemma Rsum_nonneg l: (forall x, In x l -> 0 <= x) -> 0 <= Rsum l.
+Proof with auto with real.
+  induction l...
+  intros.
+  simpl.
+  apply Rplus_le_le_0_compat; intuition.
+Qed.
+
+Lemma Rsum_single x: Rsum (x :: nil) = x.
+Proof. simpl. apply Rplus_0_r. Qed.
 
 (* RsumOver *)
 
@@ -181,14 +243,6 @@ Proof with auto.
   destruct (In_map_inv H0).
   destruct H1.
   subst...
-Qed.
-
-Lemma nats_Sb w b: nats (S b) w = map S (nats b w).
-Proof with auto.
-  induction w...
-  simpl.
-  intros.
-  rewrite IHw...
 Qed.
 
 Lemma nats_plusb b b' w: nats (b + b') w = map (plus b) (nats b' w).
@@ -300,15 +354,15 @@ Proof with auto with real.
     rewrite Rmult_0_l...
   unfold Ravg.
   simpl Rsum.
-  simpl length.
+  simpl @length.
   unfold Rdiv.
   rewrite Rmult_assoc.
   rewrite Rinv_l...
 Qed.
 
-Lemma Ravg_Permutation x y: Permutation x y -> Ravg x = Ravg y.
+Instance Ravg_Permutation: Morphism (Permutation ==> eq) Ravg.
 Proof.
-  intros.
+  repeat intro.
   unfold Ravg.
   rewrite (Rsum_Permutation H).
   rewrite (Permutation_length H); auto.
@@ -363,8 +417,8 @@ Proof with auto with real.
       rewrite Ravg_nil.
       rewrite Rmult_0_l...
     rewrite Rinv_r...
-    simpl length...
-  simpl length.
+    simpl @length...
+  simpl @length.
   simpl app.
   do 2 rewrite Ravg_cons.
   rewrite IHx.
@@ -423,10 +477,205 @@ Proof with auto with real.
   destruct (Rmult_0_inv H6)...
   destruct l.
     inversion H1.
-  simpl length in H7.
+  simpl @length in H7.
   elimtype False.
   apply (INR_S_ne_0 (length l))...
 Qed.
+
+Hint Resolve not_0_INR.
+
+Lemma avg_filter_perms (T: Set) (f: list T -> R) (p: T -> bool) (t: list T):
+  Ravg (map (f ∘ filter p) (perms t)) =
+  Ravg (map f (perms (filter p t))).
+Proof with auto.
+  intros.
+  rewrite <- map_map_comp.
+  rewrite (filter_perms p t).
+  rewrite map_concat_map.
+  set (((fact (length (filter (negb ∘ p) t)) * length (merges (filter p t) (filter (negb ∘ p) t))))%nat).
+  assert (n <> 0%nat).
+    subst n.
+    apply mult_ne_0.
+      apply fact_neq_0.
+    pose proof (merges_ne_nil (filter p t) (filter (negb ∘ p) t)).
+    destruct @merges...
+    discriminate.
+  clearbody n.
+  rewrite (map_ext_eq_mor (repeat_map_comm f n)).
+  set (perms (filter p t)).
+  assert (l <> nil).
+    subst l.
+    intro.
+    pose proof (length_perms (filter p t)).
+    rewrite H0 in H1.
+    simpl in H1.
+    apply (fact_neq_0 (length (filter p t)))...
+  clearbody l.
+  unfold Ravg.
+  rewrite map_length.
+  rewrite length_concat.
+  rewrite map_map_comp.
+  rewrite Rsum_concat.
+  rewrite map_map_comp.
+  rewrite (@add_same n).
+    rewrite map_length.
+    rewrite <- Combinators.compose_assoc.
+    rewrite <- map_map_comp.
+    rewrite (map_ext_eq_mor (Rsum_repeat n)).
+    rewrite Rsum_map_mult.
+    rewrite mult_INR.
+    field.
+    split...
+    destruct l...
+    simpl @length.
+    auto with arith.
+  intros.
+  apply in_map_iff in H1. destruct H1. destruct H1. subst...
+  apply length_repeat.
+Qed.
+
+Lemma Ravg_comp_map X
+  (f: X -> R) (m: list X -> R) (g: R -> R):
+  (forall a b, g (a * b) = g a * b) ->
+  (forall l, g (Rsum l) = Rsum (map g l)) ->
+    (forall l: list X, Ravg (map f l) = g (m l)) -> forall u,
+    Ravg (map (fun l => Ravg (map f l)) u) = g (Ravg (map m u)).
+Proof with auto.
+  intros.
+  unfold Ravg.
+  repeat rewrite map_length.
+  unfold Rdiv.
+  rewrite H.
+  f_equal...
+  rewrite H0.
+  rewrite map_map.
+  replace (map (fun x : list X => g (m x)) u) with (map (fun x : list X => Ravg (map f x)) u)...
+  apply map_ext...
+Qed.
+
+Lemma Ravg_comp_map_le (U: Type)
+  (f: U -> list R) (m: U -> R) (g: R -> R):
+  (forall u, 0 <= m u) ->
+  (forall a b, 0 <= a -> g a / INR (S b) <= g (a / INR (S b))) ->
+  (forall l, Rsum (map g l) <= g (Rsum l)) ->
+    (forall l, Ravg (f l) <= g (m l)) -> forall u, (0 < length u)%nat ->
+    Ravg (map (Ravg ∘ f) u) <= g (Ravg (map m u)).
+Proof with auto.
+  intros.
+  unfold Ravg.
+  repeat rewrite map_length.
+  unfold Rdiv.
+  apply Rle_trans with (g (Rsum (map m u)) * / INR (length u))...
+    apply Rmult_le_compat_r.
+      apply Rlt_le.
+      apply Rinv_0_lt_compat.
+      apply lt_0_INR...
+    apply Rle_trans with (Rsum (map g (map m u)))...
+    rewrite map_map.
+    apply Rsum_map_le.
+    intros.
+    apply H2.
+  unfold Rdiv in H0.
+  destruct u.
+    simpl in H3.
+    elimtype False. apply (lt_irrefl _ H3).
+  simpl @length.
+  apply H0...
+  rewrite <- (Rmult_0_r (INR (length (map m (u :: u0))))).
+  apply le_Rsum.
+  intros.
+  destruct (fst (conj_prod (in_map_iff _ _ _)) H4).
+  destruct H5.
+  subst...
+Qed.
+
+Lemma Ravg_concat v x:
+  (forall l, In l x -> length l = v) ->
+  Ravg (concat x) = Ravg (map Ravg x).
+Proof with auto.
+  induction x...
+  destruct v.
+    intros.
+    rewrite concat_nil.
+      rewrite Ravg_nil.
+      symmetry.
+      apply Ravg_0.
+      intros.
+      destruct (fst (conj_prod (in_map_iff _ _ _)) H0).
+      destruct H1.
+      subst.
+      rewrite (empty_nil x1)...
+      apply Ravg_nil.
+    intuition.
+    apply empty_nil...
+  intros.
+  simpl.
+  rewrite Ravg_cons.
+  rewrite <- IHx.
+    Focus 2. intuition.
+  rewrite map_length.
+  clear IHx.
+  rewrite Ravg_app.
+  rewrite Rmult_comm.
+  rewrite length_concat.
+  rewrite (@add_same (S v)).
+    rewrite map_length.
+    replace (length a) with (S v).
+      replace (S v + length x * S v)%nat with (S (length x) * S v)%nat...
+      rewrite mult_INR.
+      rewrite mult_INR.
+      field...
+    symmetry.
+    intuition.
+  intros.
+  destruct (fst (conj_prod (in_map_iff (@length _) x x0)) H0).
+  destruct H1.
+  subst.
+  intuition.
+Qed.
+
+Lemma Ravg_map_plus X f g (l: list X):
+  Ravg (map (fun x => f x + g x) l) =
+  Ravg (map f l) + Ravg (map g l).
+Proof with auto.
+  unfold Ravg. intros. repeat rewrite map_length.
+  rewrite Rsum_map_plus.
+  unfold Rdiv.
+  rewrite Rmult_plus_distr_r...
+Qed.
+
+Lemma Ravg_constant l: l <> nil -> forall v, (forall x, In x l -> x = v) -> Ravg l = v.
+Proof with auto.
+  intros.
+  unfold Ravg.
+  rewrite (@Rsum_constant v)...
+  unfold Rdiv.
+  rewrite (Rmult_comm (INR (length l))).
+  rewrite Rmult_assoc.
+  rewrite Rinv_r.
+    apply Rmult_1_r.
+  apply not_0_INR...
+  destruct l...
+  discriminate.
+Qed.
+
+Instance elemsR_le_Ravg: Morphism (elemsR Rle ==> Rle) Ravg.
+Proof with auto with real.
+  repeat intro.
+  unfold Ravg.
+  destruct x; inversion_clear H...
+  simpl @length.
+  rewrite (elemsR_length H1).
+  unfold Rdiv.
+  apply Rmult_le_compat_r...
+  apply elemsR_le_Rsum...
+Qed.
+
+Lemma Ravg_map_le X (f g: X -> R) (l: list X): (forall x, In x l -> f x <= g x) -> Ravg (map f l) <= Ravg (map g l).
+Proof. intros. apply elemsR_le_Ravg, elemsR_map_map. assumption. Qed.
+
+Lemma Ravg_single x: Ravg (x :: nil) = x.
+Proof. unfold Ravg. simpl. intros. field. Qed.
 
 Require ne_tree.
 

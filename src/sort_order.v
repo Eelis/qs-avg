@@ -29,7 +29,7 @@ Record E: Type :=
   ; Ecmp_eq_trans_l: forall x y z c, Ecmp x y = Eq -> Ecmp y z = c -> Ecmp x z = c
   }.
 
-Variable e: E.
+Context {e: E}.
 
 Lemma Ecmp_apply_sym x y c: Ecmp e x y = CompOpp c -> Ecmp e y x = c.
 Proof. intros. rewrite Ecmp_sym. rewrite H. destruct c; auto. Qed.
@@ -47,9 +47,33 @@ Proof with auto.
   destruct c...
 Qed.
 
-Definition Elt x y: Prop := Ecmp e x y = Lt.
-Definition Ele x y: Prop := Ecmp e x y <> Gt.
-Definition Ege x y: Prop := Ecmp e x y <> Lt.
+Section shorthands.
+
+  Variables (x y: e).
+
+  Definition Elt: Prop := Ecmp _ x y = Lt.
+  Definition Egt: Prop := Ecmp _ x y = Gt.
+  Definition Ele: Prop := Ecmp _ x y <> Gt.
+  Definition Ege: Prop := Ecmp _ x y <> Lt.
+
+  Definition Eltb: bool := match Ecmp _ x y with Lt => true | _ => false end.
+  Definition Egtb: bool := match Ecmp _ x y with Gt => true | _ => false end.
+  Definition Eleb: bool := match Ecmp _ x y with Gt => false | _ => true end.
+  Definition Egeb: bool := match Ecmp _ x y with Lt => false | _ => true end.
+
+  Lemma Eltb_true: Elt <-> Eltb = true.
+  Proof. unfold Elt, Eltb. destruct (Ecmp e x y); intuition; discriminate. Qed.
+
+  Lemma Egtb_true: Egt <-> Egtb = true.
+  Proof. unfold Egt, Egtb. destruct (Ecmp e x y); intuition; discriminate. Qed.
+
+  Lemma Eleb_true: Ele <-> Eleb = true.
+  Proof. unfold Ele, Eleb. destruct (Ecmp e x y); intuition; discriminate. Qed.
+
+  Lemma Egeb_true: Ege <-> Egeb = true.
+  Proof. unfold Ege, Egeb. destruct (Ecmp e x y); intuition; discriminate. Qed.
+
+End shorthands.
 
 Lemma Elt_irrefl x: ~ Elt x x.
 Proof.
@@ -98,7 +122,10 @@ Proof.
 Qed.
 
 Lemma Ele_Ege x y: Ele x y -> Ege y x.
-Proof. unfold Ele. unfold Ege. intros. apply Ecmp_inv_sym. assumption. Qed.
+Proof. unfold Ele, Ege. intros. apply Ecmp_inv_sym. assumption. Qed.
+
+Lemma Ege_Ele x y: Ege x y -> Ele y x.
+Proof. unfold Ele, Ege. intros. apply Ecmp_inv_sym. assumption. Qed.
 
 Lemma Ecmp_le_lt_trans: forall x y z, Ele x y -> Ecmp e y z = Lt -> Ecmp e x z = Lt.
 Proof with auto.
@@ -146,6 +173,47 @@ Proof with try assumption.
   apply H0.
   apply Ecmp_ge_gt_trans with x...
   apply Ele_Ege...
+Qed.
+
+Lemma Ege_preorder: preorder _ Ege.
+Proof with try assumption.
+  apply Build_preorder.
+    unfold reflexive.
+    intros.
+    unfold Ege.
+    rewrite Ecmp_refl.
+    discriminate.
+  unfold transitive.
+  intros.
+  unfold Ege.
+  case_eq (Ecmp e x z); do 2 intro; try discriminate.
+  apply H0.
+  apply Ecmp_le_lt_trans with x...
+  apply Ege_Ele...
+Qed.
+
+Hint Immediate Ege_preorder EO.
+
+Lemma preorder_impl X (P Q: relation X): (forall x y, P x y <-> Q x y) -> preorder _ P -> preorder _ Q.
+Proof with try firstorder.
+  intros.
+  destruct H0.
+  constructor...
+  repeat intro.
+  apply -> H.
+  apply preord_trans with y...
+Qed.
+
+Lemma Eleb_preorder: preorder _ (fun x y => Eleb x y = true).
+Proof with auto.
+  intros. apply preorder_impl with Ele...
+  intros. apply Eleb_true.
+Qed.
+
+Lemma Egeb_preorder: preorder _ (fun x y => Egeb x y = true).
+Proof with auto.
+  intros. apply preorder_impl with Ege...
+  intros. apply Egeb_true.
 Qed.
 
 Lemma Ele_nlt x y: Ele x y -> ~ Elt y x.

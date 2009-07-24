@@ -84,16 +84,21 @@ Proof with try reflexivity. induction l... simpl. rewrite IHl... Qed.
 
 Lemma vec_round_trip (X T: Set) (n : nat) (v : vector X n) (f: forall n, vector X n -> T):
   (f _ (from_list (to_list v))) = f _ v.
-Proof.
-  induction v.
-    simpl.
-    reflexivity.
+Proof with auto.
+  induction v...
   intros.
   simpl.
   apply (IHv (fun (m: nat) (w: vector X m) => f (S m) (Vcons a w))).
-Qed. (* this has got to be the weirdest induction i've done so far *)
+Qed.
 
-
+Lemma eq_as_lists X n (x y: vector X n): to_list x = to_list y -> x = y.
+Proof with auto.
+  induction n; intros.
+    rewrite (eq_nil x), (eq_nil y)...
+  rewrite (eq_cons x), (eq_cons y) in *...
+  inversion H.
+  rewrite (IHn (tail x) (tail y))...
+Qed.
 
 Lemma eq_list A (l: List.list A) (v: vector A (List.length l)): from_list l = v -> l = to_list v.
 Proof with auto.
@@ -417,12 +422,9 @@ Lemma perm_refl (X: Set) n (v: vector X n): Permutation v v.
 Proof. induction v; auto. Qed.
 
 Lemma List_Permutation (X: Set) n (a b: vector X n): Permutation a b -> List.Permutation a b.
-Proof with auto.
+Proof with eauto.
   intros X n a b p.
   induction p; simpl...
-      apply List.perm_skip...
-    apply List.perm_swap.
-  apply List.perm_trans with (to_list l')...
 Qed.
 
 Lemma remove_head (T: Set) p (v: vector T (S p)):

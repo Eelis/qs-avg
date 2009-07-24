@@ -11,6 +11,7 @@ Require Omega.
 Require Import Div2.
 Require Import Recdef.
 Require Import Rbase.
+Require Import Morphisms.
 
 (* nat misc *)
 
@@ -41,6 +42,8 @@ Ltac deep_le_trans h :=
     end
   end.
 
+Instance Transitive_le: Transitive le := le_trans.
+
 Lemma minus_plus_same (y x: nat): x <= x - y + y.
 Proof. intros. omega. Qed.
 
@@ -63,6 +66,12 @@ Proof with auto.
   simpl.
   intros.
   apply lt_plus_trans...
+Qed.
+
+Lemma mult_ne_0 a b: (a <> 0 -> b <> 0 -> mult a b <> 0)%nat.
+Proof with auto with arith.
+  destruct a... destruct b...
+  intros. simpl. discriminate.
 Qed.
 
 Lemma weak_lt_S_n n m: S n < m -> n < m.

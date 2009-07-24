@@ -4,6 +4,11 @@ Require Import Relations.
 Require Export Basics.
 Require Import Setoid.
 
+Implicit Arguments eq [[A]].
+Implicit Arguments fst [[A] [B]].
+
+Hint Unfold compose.
+
 Definition proj1_conj (A B: Prop) (c: A /\ B): A :=
   match c with conj x _ => x end.
 
@@ -60,7 +65,7 @@ Definition id {X} (x: X): X := x.
 
 (* extensional equality on simple functions *)
 
-Definition ext_eq (A B: Type) (f g: A -> B): Prop := forall x, f x = g x.
+Definition ext_eq {A B: Type} (f g: A -> B): Prop := forall x, f x = g x.
 
 Lemma ext_eq_trans: forall A B, transitive _ (@ext_eq A B).
 Proof. intros. unfold transitive. intros. intro. rewrite H. rewrite H0. reflexivity. Qed.
@@ -81,8 +86,6 @@ Lemma ext_eq_rw (A B: Type) (f g: A -> B): ext_eq f g -> forall x, f x = g x.
 Proof. intros. apply H. Qed.
 
 (* function composition *)
-
-Hint Unfold compose.
 
 Notation " g ∘ f " := (compose g f) (at level 40, left associativity).
 
@@ -113,3 +116,46 @@ Definition map_snd (A B: Set) (f: A -> B) (C: Set) (p: C * A): C * B := (fst p, 
 
 Lemma fst_map_snd (A B: Set) (f: A -> B) (C: Set) (p: C * A): fst (map_snd f p) = fst p.
 Proof. destruct p. auto. Qed.
+
+Definition on {A B: Type} {C: B -> B -> Type} (g: A -> B) (f: forall b b', C b b') (x y: A): C (g x) (g y) := f (g x) (g y).
+
+Definition unsumbool {A B}: { A } + { B } -> bool := fun x => if x then true else false.
+
+Definition dep_flip {A B: Type} {C: A -> B -> Type} (f: forall a b, C a b) (b: B) (a: A): C a b := f a b.
+
+Coercion conj_prod (A B: Prop): A /\ B -> A * B.
+  firstorder.
+Qed.
+
+Definition uncurry A B C (f: A -> B -> C) (ab: A * B): C := f (fst ab) (snd ab).
+
+Section well_founded_pairs.
+
+  Variables (A B: Type)
+    (Ra: relation A) (Rb: relation B).
+
+  Inductive pair_rel: relation (A * B) :=
+    | pair_rel_l a a' b: Ra a a' -> pair_rel (a, b) (a', b)
+    | pair_rel_r a b b': Rb b b' -> pair_rel (a, b) (a, b').
+
+  Fixpoint acc_pairs a (Aa: Acc Ra a) {struct Aa}: forall b (Ab: Acc Rb b), Acc pair_rel (a, b) :=
+    fix G b (Ab: Acc Rb b) {struct Ab}: Acc pair_rel _ := @Acc_intro _ pair_rel _
+      match Aa, Ab with
+      | Acc_intro x, Acc_intro y =>  fun z (za: pair_rel z (a, b)) =>
+          match za in pair_rel z ab return
+            (forall (p: A) (q: Ra p (fst ab)), Acc pair_rel (p, (snd ab))) -> (forall p, Rb p (snd ab) -> Acc pair_rel (fst ab, p)) -> Acc pair_rel z with
+          | pair_rel_l v w c d => fun fr gr => fr _ d
+          | pair_rel_r v w c d => fun fr gr => gr _ d
+          end
+          (fun (p: A) (q: Ra p (fst (a, b))) => @acc_pairs p (x p q) b Ab : Acc pair_rel (p, b))
+          (fun (p: B) (q: Rb p (snd (a, b))) => @G p (y p q): Acc pair_rel (a, p))
+      end.
+
+   Lemma well_founded_pairs (Wa: well_founded Ra) (Wb: well_founded Rb): well_founded pair_rel.
+     unfold well_founded.
+     intros.
+     destruct a.
+     apply (acc_pairs (Wa a) (Wb b)).
+   Qed.
+
+End well_founded_pairs.
