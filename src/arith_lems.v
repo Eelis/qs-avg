@@ -498,6 +498,26 @@ Proof with auto with real.
   elimtype False...
 Qed.
 
+Lemma Rdiv_le_1 a b: 0 < a -> a <= b -> 1 <= b / a.
+Proof with auto with real.
+  intros.
+  unfold Rdiv.
+  rewrite <- (Rinv_r a)...
+Qed.
+
+Lemma Rdiv_lt_1 n m: 0 <= n -> n < m -> n / m < 1.
+Proof with auto with real.
+  unfold Rdiv.
+  intros.
+  rewrite <- (Rinv_r m)...
+    apply Rmult_lt_compat_r...
+    apply Rinv_0_lt_compat...
+    fourier.
+  intro.
+  subst.
+  apply (Rlt_not_le _ _ H0 H).
+Qed.
+
 Lemma zero_le_2_div_Sn n: 0 <= (2 * / INR (S n))%R.
 Proof with auto with real.
   intros.

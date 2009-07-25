@@ -167,52 +167,88 @@ Proof with auto with real.
   rewrite map_length. rewrite nats_length...
 Qed.
 
+Lemma C_S n: C n = 2 * pred n / n + S n / n * C (pred n).
+Proof with auto with real.
+  assert (forall n, C (S n) = n + 2 * Ravg (map C (nats 0 (S n)))).
+    intros.
+    rewrite Ceq.
+    simpl pred...
+  assert (forall n, C n * n = n * pred n + 2 * Rsum (map C (nats 0 n))).
+    destruct n.
+      simpl. field.
+    rewrite H.
+    unfold Ravg.
+    rewrite map_length, nats_length.
+    unfold Rdiv.
+    rewrite Rmult_plus_distr_r.
+    rewrite Rmult_assoc.
+    rewrite Rmult_assoc.
+    rewrite Rinv_l...
+    rewrite Rmult_1_r...
+  assert (forall n, C (S n) * S n = S n * n + 2 * C n - n * pred n + C n * n).
+    intros.
+    rewrite H0.
+    rewrite H0.
+    simpl pred.
+    rewrite nats_Sw'.
+    rewrite map_app.
+    rewrite Rsum_app.
+    simpl Rsum at 2.
+    rewrite Rplus_0_r.
+    rewrite plus_0_r.
+    field.
+  assert (forall n, C (S n) * S n = (2+n) * C n + 2 * n).
+    destruct n.
+      simpl.
+      rewrite Ceq.
+      simpl.
+      rewrite Ravg_single.
+      rewrite Ceq.
+      field.
+    rewrite H1.
+    simpl pred.
+    repeat rewrite S_INR.
+    field.
+  destruct n.
+    simpl.
+    rewrite Ceq.
+    repeat rewrite Rmult_0_r.
+    unfold Rdiv.
+    rewrite Rmult_0_l...
+  simpl pred.
+  apply Rmult_eq_reg_l with (S n)...
+  rewrite Rmult_comm.
+  rewrite H2.
+  repeat rewrite S_INR.
+  field...
+Qed. (* todo: get rid of ugly asserts *)
+
 Lemma C_le_compat n m: le n m -> C n <= C m.
 Proof with auto with real.
-Admitted. (* Todo *)
-(*
   intros n m H.
   induction H...
   apply Rle_trans with (C m)...
-  clear IHle H n.
-  rename m into n.
-  induction n.
-    repeat rewrite Ceq'...
-  destruct n.
-    rewrite Ceq'.
+  rewrite (C_S (S m)).
+  simpl pred.
+  rewrite <- (Rplus_0_l (C m)) at 1.
+  apply Rplus_le_compat.
+    unfold Rdiv.
+    rewrite S_INR...
+    apply Rmult_le_pos...
+    apply Rmult_le_pos...
+  rewrite <- (Rmult_1_l (C m)) at 1.
+  apply Rmult_le_compat_r.....
     apply C_nonneg.
-  rewrite Ceq'.
-  rewrite Ceq'.
-  apply Rplus_le_compat...
-  apply Rmult_le_compat_l...
-  rewrite (nats_Sw' (S (S n))).
-  rewrite map_app. rewrite map_single.
-  simpl plus.
-  replace (n + 0)%nat with n by omega.
-  rewrite Ravg_app.
-  rewrite map_length.
-  rewrite nats_length.
-  simpl @length.
-  generalize (Ravg (map C (nats 0 (S (S n))))). intro.
-  rewrite Ravg_single.
-  rewrite Rmult_1_r.
-  rewrite plus_comm.
-  simpl plus.
-Admitted.
-*)
+  rewrite S_INR.
+  apply Rdiv_le_1...
+Qed.
 
 (* C is bounded by prefixes of the harmonic series: *)
 
+Hint Resolve Rplus_le_le_0_compat.
+
 Lemma C_bounded_by_harmonic n: C n <= n * 2 * Rsum (map (Rinv ∘ INR) (nats 2 (pred n))).
 Proof with try field; auto with real.
-  assert (forall n: nat, n * C n = n * (n - 1) + 2 * Rsum (map C (nats 0 n))).
-    intros.
-    rewrite Ceq.
-    destruct n. simpl...
-    simpl pred.
-    replace (S n - 1) with (INR n).
-      unfold Ravg. rewrite map_length, nats_length...
-    repeat rewrite S_INR...
   induction n.
     rewrite Ceq...
   apply Rmult_le_reg_l with (/ S n)...
@@ -229,7 +265,7 @@ Proof with try field; auto with real.
   simpl pred in *.
   rewrite nats_Sw'.
   rewrite map_app, Rsum_app, map_single, Rsum_single.
-  set (bla := S n).
+  set (bla := S n) in *.
   rename n into m. rename bla into n.
   assert (0 < n). subst n. replace 0 with (INR O)...
   apply Rmult_le_reg_l with n...
@@ -239,30 +275,35 @@ Proof with try field; auto with real.
   simpl plus...
   unfold compose at 2.
   rewrite <- (Rmult_assoc n 2).
-  fold n in IHn.
   fold n.
   apply Rle_trans with (C n + n * (2 * / S n))...
-  replace (C n + n * (2 * / S n)) with (n * (2 * / S n + C n * / n))...
-  apply Rmult_le_compat_l...
-  apply Rmult_le_reg_l with (S n)...
-  replace (S n * (/ S n * C (S n))) with (C (S n))...
-  apply Rmult_le_reg_l with (S n)...
-  apply (Rplus_le_reg_l (-(n * C n))).
+  rewrite (C_S (S n)).
+  simpl pred.
+  repeat rewrite <- Rmult_assoc.
+  rewrite Rmult_plus_distr_l.
+  unfold Rdiv.
+  repeat rewrite <- Rmult_assoc.
   rewrite Rplus_comm.
-  rewrite H at 1.
-  rewrite H at 1.
-  rewrite nats_Sw'.
-  rewrite map_app, Rsum_app, map_single, Rsum_single.
-  rewrite plus_comm.
-  simpl plus.
-  repeat rewrite S_INR.
-  replace ((n + 1) * (n + 1 - 1) + 2 * (Rsum (map C (nats 0 n)) + C n) + - (n * (n - 1) + 2 * Rsum (map C (nats 0 n)))) with (2* (n + C n))...
-  replace (- (n * C n) + (n + 1) * ((n + 1) * (2 * / (n + 1) + C n * / n))) with (2 * (n + C n) + (2 + C n * / n))...
-  rewrite <- (Rplus_0_r (2*(n + C n))) at 1.
-  apply Rplus_le_compat_l.
-  apply Rplus_le_le_0_compat...
-  apply Rmult_le_pos...
-  apply C_nonneg.
+  apply Rplus_le_compat.
+    rewrite <- (Rmult_1_l (C n)) at 2.
+    apply Rmult_le_compat_r...
+      apply C_nonneg.
+    repeat rewrite S_INR.
+    replace (n * / (n + 1) * (n + 1 + 1) * / (n + 1)) with ((n * n + n + n) * / (n * n + n + n + 1)).
+      apply Rlt_le.
+      apply Rdiv_lt_1...
+    field...
+    split...
+    apply Rgt_not_eq.
+    unfold Rgt.
+    apply Rle_lt_trans with (n * n + n + n)...
+  apply Rmult_le_compat_r...
+  rewrite (Rmult_comm n 2).
+  apply Rmult_le_compat_r...
+  rewrite <- (Rmult_1_l 2) at 2.
+  apply Rmult_le_compat_r...
+  apply Rlt_le...
+  apply Rdiv_lt_1...
 Qed.
 
 (* Consequently, we can use an existing result about the harmonic series to get
