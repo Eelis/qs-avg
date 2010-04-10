@@ -20,6 +20,7 @@ Require Import Omega.
 Require Import arith_lems.
 Require Import list_utils.
 Require Import Morphisms.
+Require Import Relation_Definitions.
 Require vec.
 
 Definition numbers := 3 :: 2 :: 5 :: 9 :: 7 :: 6 :: 1 :: 0 :: 4 :: 8 :: nil.

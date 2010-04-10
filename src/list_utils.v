@@ -5,7 +5,7 @@ Require Export List.
 
 Require Import
   Program Omega Factorial
-  Bool util Morphisms Relations RelationClasses.
+  Bool util Morphisms Relations RelationClasses Permutation.
 
 Hint Resolve
   in_map Permutation_refl.
@@ -139,19 +139,23 @@ Proof. induction l; firstorder. Qed.
 
 Implicit Arguments In_map_inv [T U f l y].
 
-Lemma Permutation_NoDup {X} (a: list X): NoDup a -> forall b, Permutation a b -> NoDup b.
-Proof with auto.
-  intros.
-  induction H0...
-    inversion_clear H.
-    apply NoDup_cons...
-    intro.
-    apply H1.
-    apply Permutation_in with l'...
-    apply Permutation_sym...
-  inversion_clear H.
-  inversion_clear H1.
-  apply NoDup_cons; firstorder.
+Instance In_Permutation A (x: A): Morphism (Permutation ==> iff) (In x).
+Proof.
+  repeat intro.
+  pose proof (Permutation_in).
+  pose proof (Permutation_sym).
+  firstorder.
+Qed.
+
+Instance Permutation_NoDup {X}: Morphism (Permutation ==> iff) (@NoDup X).
+Proof with firstorder.
+  pose proof NoDup_cons.
+  intros ??? E.
+  induction E; [firstorder | | | firstorder].
+    split; intro A; inversion_clear A; apply NoDup_cons...
+      rewrite <- E...
+    rewrite E...
+  split; intro A; inversion_clear A; inversion_clear H1...
 Qed.
 
 Hint Resolve incl_tran.
@@ -195,18 +199,12 @@ Proof with auto.
 Qed.
 
 Instance filter_perm X: Morphism (pointwise_relation _ eq ==> Permutation ==> Permutation) (@filter X).
-Proof with eauto.
+Proof with auto.
   repeat intro.
-  induction H0...
-      simpl.
-      rewrite H.
+  induction H0; rewrite H in *; simpl...
       destruct (y x0)...
-    simpl.
-    repeat rewrite H.
-    rewrite (filter_eq_morphism H (refl_equal l)).
     destruct (y y0); destruct (y x0)...
-  rewrite (filter_eq_morphism H (refl_equal l)) in *.
-  rewrite (filter_eq_morphism H (refl_equal l')) in *...
+  eauto.
 Qed.
 
 Lemma complementary_filter_perm A (p: A -> bool) (l: list A):
@@ -568,7 +566,7 @@ Inductive elemsR A B (R: A -> B -> Prop): list A -> list B -> Prop :=
 
 Hint Constructors elemsR.
 
-Instance elemsR_trans `{R: relation A} {TR: Transitive R}: Transitive (elemsR R).
+Instance elemsR_trans A `{R: relation A} {TR: Transitive R}: Transitive (elemsR R).
 Proof with auto.
   do 4 intro.
   induction x.
@@ -621,7 +619,7 @@ Section Permuted.
   Lemma permuted_refl l: Permuted l l.
   Proof. induction l; auto. Qed.
 
-  Global Hint Immediate permuted_refl.
+  Hint Immediate permuted_refl.
 
   Lemma elemsR_permuted l l': elemsR R l l' -> Permuted l l'.
   Proof. induction l; intros; inversion_clear H; auto. Qed.
@@ -777,7 +775,7 @@ Instance Reflexive_Permutation T: Reflexive Permutation := @Permutation_refl T.
 Instance Reflexive_Symmetric T: Symmetric Permutation := @Permutation_sym T.
 Instance Reflexive_Transitive T: Transitive Permutation := @perm_trans T.
 
-Instance app_Permutation_mor: Morphism (Permutation ==> Permutation ==> Permutation) (@app T).
+Instance app_Permutation_mor T: Morphism (Permutation ==> Permutation ==> Permutation) (@app T).
 Proof. repeat intro. apply Permutation_app; assumption. Qed.
 
 Instance map_Permutation_mor T U (f: T -> U): Morphism (Permutation ==> Permutation) (map f) :=

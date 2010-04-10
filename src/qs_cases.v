@@ -96,17 +96,12 @@ Section contents.
   Hint Immediate vec.remove_perm.
 
   Lemma pivot_not_In_flt cr: ~ In (vec.nth v pi) (flt pi cr).
-  Proof.
-    unfold flt.
-    intros.
-    intro.
-    destruct (In_filter_inv _ _ _ H).
-    cset (Permutation_sym (vec.List_Permutation (vec.remove_perm pi v))).
-    simpl in H2.
-    cset (Permutation_NoDup ndi H2).
-    inversion_clear H3.
-    apply H4.
-    assumption.
+  Proof with auto.
+    intros cr H.
+    pose proof ndi as H0.
+    rewrite (Permutation_sym (vec.List_Permutation (vec.remove_perm pi v))) in H0.
+    inversion_clear H0...
+    destruct (In_filter_inv _ _ _ H)...
   Qed.
 
   Lemma NoDup_comparisons (x: Index ee ol) (l: list (Index ee ol)):
@@ -291,10 +286,8 @@ Section contents.
         apply le_INR.
         apply eq_count_NoDup.
         apply NoDup_comparisons.
-        apply Permutation_NoDup with v...
-          apply IndexSeq_NoDup with b...
-        apply Permutation_sym...
-        apply (vec.List_Permutation (vec.remove_perm pi v)).
+        rewrite (vec.List_Permutation (vec.remove_perm pi v)).
+        apply IndexSeq_NoDup with b...
       destruct H; subst; [left | right]; apply pivot_not_In_flt.
     intros.
     unfold U.M.

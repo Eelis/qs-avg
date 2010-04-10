@@ -135,12 +135,9 @@ Section contents.
         subst.
         apply ne_le_impl_lt...
         intro.
-        cset (vec.List_Permutation (vec.perm_sym (vec.remove_perm x v))).
-        simpl in H6.
-        cset (Permutation_NoDup H1 H6).
-        assert (~ In (vec.nth v x) (vec.remove v x)).
-          inversion_clear H7...
-        apply H8.
+        rewrite (vec.List_Permutation (vec.perm_sym (vec.remove_perm x v))) in H1.
+        inversion_clear H1.
+        apply H6.
         cset(natBelow_unique _ _ H5).
         subst x1...
       subst...

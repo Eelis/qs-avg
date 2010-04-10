@@ -166,19 +166,18 @@ Section contents.
     intro.
     apply (NoDup_map_inv' (@nb_val (length ol))).
     rewrite vec.List_map.
-    apply Permutation_NoDup with (vec.to_list (vec.nb_nats b (length l))).
-      unfold vec.nb_nats.
-      rewrite <- vec.List_map.
-      apply NoDup_map.
-        intros.
-        apply natBelow_unique...
-      apply vec.NoDup_nats.
-    apply Permutation_sym.
-    apply vec.List_Permutation.
-    apply (vec_IndexSeq_nats_perm _ H0).
+    assert (Permutation (vec.map nb_val H) (vec.to_list (vec.nb_nats b (length l)))).
+      apply vec.List_Permutation, vec_IndexSeq_nats_perm...
+    rewrite H1.
+    unfold vec.nb_nats.
+    rewrite <- vec.List_map.
+    apply NoDup_map.
+      intros.
+      apply natBelow_unique...
+    apply vec.NoDup_nats.
   Qed.
 
-  Lemma IndexSeq_inv l b: IndexSeq b l -> forall t, In t l-> b <= t < b + length l.
+  Lemma IndexSeq_inv l b: IndexSeq b l -> forall t, In t l -> b <= t < b + length l.
   Proof with auto with arith.
     intro.
     rewrite <- (vec.list_round_trip l).
